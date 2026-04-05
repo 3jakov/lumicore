@@ -78,7 +78,7 @@ Deliver a working, deployable, bilingual (ET/RU) field management platform that 
 | Gallery & Photos | E7 | Both | E3 |
 | Documents | E8 | Both | E3 |
 | Tools | E9 | Both | E2 |
-| Chat | E10 | Both | E3, E6 |
+| Document Acknowledgement | E10 | Both | E2, E6 |
 | Settings | E11 | Both | E2 |
 | PWA & i18n | E12 | Codex | E2 |
 | CI/CD & Deployment | E13 | Claude Code | E0 |
@@ -266,13 +266,17 @@ Ship to production.
 - [ ] `BE-070` `GET /tools/:id`
 - [ ] `BE-071` `PATCH /tools/:id` — update status, location, responsible employee
 
-#### E10: Chat
-- [ ] `BE-072` `ChatModule` scaffold
-- [ ] `BE-073` `GET /chat/conversations` — list user's conversations
-- [ ] `BE-074` `POST /chat/conversations` — create conversation (direct or group)
-- [ ] `BE-075` `GET /chat/conversations/:id/messages` — paginated messages
-- [ ] `BE-076` `POST /chat/conversations/:id/messages` — send message; emit `chat:message` via WebSocket
-- [ ] `BE-077` `ChatGateway` — `chat:message`, `chat:read` events; authenticate on handshake
+#### E10: Document Acknowledgement
+- [ ] `BE-072` `DocAcknowledgementModule` scaffold
+- [ ] `BE-073` `POST /internal-documents/upload-url` — presigned S3 PUT URL for internal doc upload
+- [ ] `BE-074` `POST /internal-documents` — save metadata (title, category, s3_key, version=1)
+- [ ] `BE-075` `GET /internal-documents` — admin list all documents
+- [ ] `BE-076` `PATCH /internal-documents/:id` — update; if new s3_key provided, increment version (BR-017)
+- [ ] `BE-077` `DELETE /internal-documents/:id` — soft archive (archived_at)
+- [ ] `BE-078` `POST /internal-documents/:id/assign` — assign to specific employees and/or groups
+- [ ] `BE-079` `GET /internal-documents/:id/status` — compliance matrix (assigned employees × ack status)
+- [ ] `BE-080` `GET /internal-documents/my` — employee's own pending + acknowledged docs
+- [ ] `BE-081` `POST /internal-documents/:id/acknowledge` — record acknowledgement (BR-016, BR-018)
 
 #### E11: Settings
 - [ ] `BE-078` `SettingsModule` scaffold
@@ -342,10 +346,10 @@ Ship to production.
 - [ ] `FE-034` `app/(app)/tools/page.tsx` — tool list with status filter
 - [ ] `FE-035` `components/tools/ToolForm.tsx` — create/edit
 
-#### E10: Chat UI
-- [ ] `FE-036` `app/(app)/chat/[conversationId]/page.tsx`
-- [ ] `FE-037` `components/chat/ChatSidebar.tsx` — conversation list, unread count badge
-- [ ] `FE-038` `components/chat/MessageList.tsx` + `MessageInput.tsx` — real-time via WebSocket
+#### E10: Document Acknowledgement UI
+- [ ] `FE-036` `app/(app)/documents/page.tsx` — employee view: pending badge in sidebar, list of docs with status
+- [ ] `FE-037` `components/doc-acknowledgement/DocAckButton.tsx` — "Olen lugenud ja nõustun" confirmation button with inline document viewer/link
+- [ ] `FE-038` `components/doc-acknowledgement/ComplianceMatrix.tsx` — admin view: employee × document acknowledgement grid, Excel export
 
 #### E11: Settings UI
 - [ ] `FE-039` `app/(app)/settings/profile/page.tsx` — name, photo, phone, email, language toggle, time format
@@ -375,7 +379,7 @@ All written by Claude Code. Consumed by Codex. Plain TypeScript — no decorator
 - [ ] `ST-006` `photo.types.ts` — `Photo`, `PhotoUploadUrlResponse`
 - [ ] `ST-007` `document.types.ts` — `Document`, `DocumentUploadUrlResponse`
 - [ ] `ST-008` `tool.types.ts` — `Tool`, `ToolStatus` enum
-- [ ] `ST-009` `chat.types.ts` — `Conversation`, `ChatMessage`, `ConversationMember`
+- [ ] `ST-009` `doc-acknowledgement.types.ts` — `InternalDocument`, `DocAckAssignment`, `DocAcknowledgement`, `DocAckStatus`
 - [ ] `ST-010` `api-responses.types.ts` — `PaginatedResponse<T>`, `ApiError`
 - [ ] `ST-011` `settings.types.ts` — `Tag`, `Role`, `CompanySettings`, `TaskTemplate`
 - [ ] `ST-012` `websocket.types.ts` — all Socket.io event payloads (timer:started, chat:message, etc.)
@@ -420,10 +424,10 @@ E0 (Infra)
         │     │     ├── E4 (Tasks)
         │     │     │     └── E5 (Time Tracking) ← CRITICAL PATH
         │     │     ├── E7 (Photos/Gallery)
-        │     │     ├── E8 (Documents)
-        │     │     └── E10 (Chat)
+        │     │     └── E8 (Documents)
         │     ├── E6 (Employees/Team)
-        │     │     └── E5 (Time Tracking) — also depends on E6
+        │     │     ├── E5 (Time Tracking) — also depends on E6
+        │     │     └── E10 (Doc Acknowledgement) — depends on E2 + E6
         │     ├── E9 (Tools)
         │     └── E11 (Settings)
         └── E13 (CI/CD)  ← can start with E0, matures over time

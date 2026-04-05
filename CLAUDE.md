@@ -25,7 +25,7 @@ This file is the primary reference for AI agents working on this codebase. Read 
 │   │   │   ├── employees/
 │   │   │   ├── photos/
 │   │   │   ├── tools/
-│   │   │   ├── chat/
+│   │   │   ├── doc-acknowledgement/
 │   │   │   ├── settings/
 │   │   │   ├── common/        # shared guards, decorators, pipes, interceptors
 │   │   │   ├── database/      # Prisma schema, migrations, seeds
@@ -208,11 +208,16 @@ POST   /api/v1/tools
 GET    /api/v1/tools/:id
 PATCH  /api/v1/tools/:id
 
-# Chat
-GET    /api/v1/chat/conversations
-POST   /api/v1/chat/conversations
-GET    /api/v1/chat/conversations/:id/messages
-POST   /api/v1/chat/conversations/:id/messages
+# Internal Documents & Acknowledgements
+POST   /api/v1/internal-documents/upload-url      # Presigned S3 PUT URL
+POST   /api/v1/internal-documents                 # Save metadata (title, category, s3_key)
+GET    /api/v1/internal-documents                 # Admin: list all documents
+PATCH  /api/v1/internal-documents/:id             # Admin: update (new file = version bump)
+DELETE /api/v1/internal-documents/:id             # Admin: soft archive
+POST   /api/v1/internal-documents/:id/assign      # Admin: assign to employees/groups
+GET    /api/v1/internal-documents/:id/status      # Admin: compliance matrix
+GET    /api/v1/internal-documents/my              # Employee: my pending + acknowledged docs
+POST   /api/v1/internal-documents/:id/acknowledge # Employee: confirm acknowledgement
 
 # Settings
 GET    /api/v1/settings/tags
@@ -260,11 +265,22 @@ computedDuration = differenceInSeconds(entry.ended_at, entry.started_at)
 function getProjectPrefix(status: ProjectStatus): 'QUOT' | 'P' {
   return status === ProjectStatus.Hinnapakkumises ? 'QUOT' : 'P';
 }
+```
 
-// BR-006: Auto-create chat
-if (dto.auto_create_chat) {
-  await this.chatService.createProjectGroupChat(project, assignedEmployees);
+**Document Acknowledgement:**
+```typescript
+// BR-016: Employee can only acknowledge if assigned (direct or via group)
+const isAssigned = await this.checkAssignment(employeeId, documentId, employee.group);
+if (!isAssigned) throw new ForbiddenException('Document not assigned to this employee');
+
+// BR-017: New file upload increments version, invalidates prior acks
+if (dto.s3_key && dto.s3_key !== document.s3_key) {
+  newVersion = document.version + 1;
+  // Existing DocAcknowledgement rows remain (audit trail) but status computed by version mismatch
 }
+
+// BR-018: Acknowledgements are immutable — no DELETE, no PATCH
+// DocAcknowledgement has no update/delete service methods
 ```
 
 **Employees:**
@@ -300,9 +316,7 @@ if (!requestingUser.roles.includes('Administraator')) {
   - `timer:stopped` — payload: `{ employee_id, time_entry_id }`
   - `timer:paused` — payload: `{ employee_id, time_entry_id }`
   - `timer:resumed` — payload: `{ employee_id, time_entry_id }`
-- Events emitted by server for Chat:
-  - `chat:message` — payload: `{ conversation_id, message }`
-  - `chat:read` — payload: `{ conversation_id, employee_id, message_id }`
+- No additional WebSocket events beyond timer events in Phase 1. Chat WebSocket events are Phase 2.
 - Authentication: WebSocket connection requires JWT in handshake `auth.token` field.
 
 ### Timezone Handling
@@ -372,7 +386,7 @@ components/
 ├── time-tracking/       # TimerWidget, TimeEntryRow, TimesheetGrid...
 ├── team/                # EmployeeCard, PraeguBoard, TimesheetExport...
 ├── photos/              # PhotoGrid, PhotoCapture, PhotoLightbox...
-├── chat/                # ChatSidebar, MessageList, MessageInput...
+├── doc-acknowledgement/ # DocList, DocAckButton, ComplianceMatrix...
 └── tools/               # ToolCard, ToolForm...
 ```
 
@@ -462,7 +476,7 @@ export * from './time-entry.types';
 export * from './employee.types';
 export * from './photo.types';
 export * from './tool.types';
-export * from './chat.types';
+export * from './doc-acknowledgement.types';
 export * from './api-responses.types';
 ```
 
@@ -496,7 +510,7 @@ docs(api): add timesheet endpoint to CLAUDE.md
 test(time-tracking): add unit tests for zero-duration validation
 ```
 
-Scopes: `auth`, `projects`, `tasks`, `time-tracking`, `employees`, `photos`, `tools`, `chat`, `settings`, `infra`, `api`, `web`.
+Scopes: `auth`, `projects`, `tasks`, `time-tracking`, `employees`, `photos`, `tools`, `doc-ack`, `settings`, `infra`, `api`, `web`.
 
 ### PR Rules
 
