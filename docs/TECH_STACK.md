@@ -64,7 +64,7 @@ All services run in Docker containers. Development uses docker-compose. Producti
 **App Router conventions used:**
 - `app/` directory with `page.tsx`, `layout.tsx`, `loading.tsx`, `error.tsx`.
 - Server Components for all read-heavy pages (project lists, timesheets).
-- `'use client'` directive only where required: timer controls, live Praegu view, chat input, camera capture.
+- `'use client'` directive only where required: timer controls, live Praegu view, camera capture, document acknowledgement confirmation.
 
 ### 2.2 Styling: Tailwind CSS 3
 
@@ -210,9 +210,8 @@ CREATE INDEX idx_photos_project ON photos(project_id);
 - NestJS has a native `@WebSocketGateway` decorator that integrates cleanly.
 
 **Rooms:**
-- `timers` — all connected admin/manager clients subscribe for Praegu view.
-- `project:{id}` — clients viewing a project subscribe for real-time task/chat updates.
-- `chat:{conversation_id}` — chat participants subscribe.
+- `timers` — all connected admin/manager clients subscribe for Praegu live view (timer:started/stopped/paused/resumed events).
+- Phase 2 will add `project:{id}` and `chat:{conversation_id}` rooms for Chat/Vestlus. No chat rooms in Phase 1.
 
 **Authentication:**
 - JWT passed in handshake `auth: { token }`.
@@ -265,10 +264,47 @@ lumico-files/
 
 **Refresh Token:**
 - Expiry: 7 days.
-- Stored as: httpOnly, Secure, SameSite=Strict cookie.
 - Rotated on every use (refresh token rotation prevents replay attacks).
-- Stored in DB as a hash to allow revocation.
-- **Native app readiness:** `POST /auth/refresh` must accept the refresh token both from the httpOnly cookie (web clients) and from the `refresh_token` field in the request body (future native clients). Implement dual-mode in Phase 1 — no backend change needed when native apps are introduced.
+- Stored in DB as a SHA-256 hash to allow server-side revocation.
+- **Dual-mode delivery (Phase 1 requirement):**
+  - **Web/PWA:** Set as httpOnly, Secure, SameSite=Strict cookie. Browser sends it automatically on every request to `/auth/refresh`.
+  - **Native apps (future):** Also returned as `{ refresh_token: "..." }` in the JSON response body. Native app stores it in secure device storage (Keychain/Keystore) and sends it as `{ refresh_token }` in the request body.
+  - Both modes are implemented from day one — no backend change needed when native apps are built.
+
+**`POST /auth/refresh` — dual-mode controller logic:**
+```typescript
+// auth.controller.ts
+@Post('refresh')
+async refresh(
+  @Req() req: Request,
+  @Body() body: RefreshTokenDto,   // { refresh_token?: string }
+  @Res({ passthrough: true }) res: Response,
+) {
+  // Cookie takes priority (web); fall back to body field (native)
+  const incomingToken = req.cookies?.refresh_token ?? body.refresh_token;
+  if (!incomingToken) throw new UnauthorizedException('No refresh token provided');
+
+  const { accessToken, refreshToken } = await this.authService.refreshTokens(incomingToken);
+
+  // Always set cookie (keeps web sessions working)
+  res.cookie('refresh_token', refreshToken, {
+    httpOnly: true,
+    secure: true,
+    sameSite: 'strict',
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+  });
+
+  // Always return in body (native clients use this; web clients can ignore it)
+  return { access_token: accessToken, refresh_token: refreshToken };
+}
+```
+
+**Security properties maintained in both modes:**
+- HTTPS required in production (both modes transmit token over TLS).
+- Token rotation on every use: old token is invalidated immediately.
+- DB hash comparison: stolen token from a compromised DB is useless without the plaintext.
+- Cookie mode additionally protected by SameSite=Strict (CSRF immune).
+- Body mode security relies on native secure storage (Keychain/Keystore) — acceptable for a controlled employee app.
 
 **Phone OTP Flow:**
 1. `POST /api/v1/auth/otp/request` — employee provides phone number. System sends 6-digit OTP via SMS (Twilio or local Estonian SMS provider).
@@ -306,7 +342,7 @@ ProjectAccessGuard // checks employee.project_access for project-scoped routes
 **PWA Features:**
 - **Service Worker** (via `next-pwa`): caches static assets and recent API responses. Task list and project list viewable offline (read-only).
 - **App Manifest**: home screen install, full-screen display, LUMICO icon and brand colors.
-- **Push Notifications**: Web Push via VAPID keys. Notification types: task assigned, timer reminder (>8h running), chat message.
+- **Push Notifications**: Web Push via VAPID keys. Notification types: task assigned, timer reminder (>8h running). Chat notifications are Phase 2.
 - **Camera**: `getUserMedia({ video: { facingMode: 'environment' } })` — rear camera default. Canvas capture → Blob → direct S3 upload. Photos never touch device gallery.
 - **GPS**: `navigator.geolocation.getCurrentPosition()` called at photo capture time. 10-second timeout with fallback (photo saved without GPS, gps_verified = false).
 
@@ -552,7 +588,7 @@ Strict mode enabled in all packages:
 ### ADR-003: PWA over Native App
 **Decision:** Progressive Web App for Phase 1.
 **Reason:** Team of 22 does not justify App Store/Play Store publishing, code signing, and device management overhead. PWA covers camera, GPS, and push notifications on modern devices.
-**Trade-off:** iOS Safari Web Push was limited before iOS 16.4. Current minimum iOS 15 means some users may not receive push notifications. Acceptable for Phase 1 — employees are in frequent contact via chat.
+**Trade-off:** iOS Safari Web Push was limited before iOS 16.4. Current minimum iOS 15 means some users may not receive push notifications. Acceptable for Phase 1 — the only push notification types in Phase 1 are task assignments and timer reminders, not real-time chat.
 **Revisit trigger:** If field workers on iOS Safari <16.4 consistently miss push notifications, or if the team grows beyond 30 field workers, evaluate React Native in Phase 2. When building native apps, the NestJS backend requires no changes — only the auth refresh flow (dual-mode cookie + body) and the NotificationService (add APNs/FCM transport) need to be extended. See `docs/MOBILE_READINESS.md`.
 
 ### ADR-004: Socket.io over raw WebSocket

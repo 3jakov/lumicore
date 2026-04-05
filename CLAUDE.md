@@ -152,10 +152,10 @@ created_at, updated_at   // always present on every model
 ```
 # Auth
 POST   /api/v1/auth/otp/request       # Request OTP via phone
-POST   /api/v1/auth/otp/verify        # Verify OTP, receive tokens
-POST   /api/v1/auth/login             # Email+password login
-POST   /api/v1/auth/refresh           # Refresh access token
-POST   /api/v1/auth/logout
+POST   /api/v1/auth/otp/verify        # Verify OTP → { access_token, refresh_token } + Set-Cookie: refresh_token
+POST   /api/v1/auth/login             # Email+password → { access_token, refresh_token } + Set-Cookie: refresh_token
+POST   /api/v1/auth/refresh           # Dual-mode: cookie (web) OR body { refresh_token } (native) → { access_token, refresh_token } + Set-Cookie: refresh_token
+POST   /api/v1/auth/logout            # Invalidate refresh token (clears cookie + DB record)
 
 # Projects
 GET    /api/v1/projects               # List (filterable, paginated)
@@ -298,6 +298,47 @@ if (!requestingUser.roles.includes('Administraator')) {
   delete employee.hourly_rate;
   delete employee.personal_id;
   delete employee.birth_date;
+}
+```
+
+### Auth — Dual-Mode Refresh Token
+
+**Every auth response** (OTP verify, login, refresh) must set the cookie AND return the token in the body:
+```typescript
+// Shared helper — call this instead of manually setting cookie + body each time
+private issueTokenResponse(res: Response, accessToken: string, refreshToken: string) {
+  res.cookie('refresh_token', refreshToken, {
+    httpOnly: true, secure: true, sameSite: 'strict',
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+  });
+  return { access_token: accessToken, refresh_token: refreshToken };
+}
+```
+
+**`RefreshTokenDto`** (used by `POST /auth/refresh`):
+```typescript
+// refresh-token.dto.ts
+import { IsOptional, IsString } from 'class-validator';
+export class RefreshTokenDto {
+  @IsOptional()
+  @IsString()
+  refresh_token?: string;  // undefined = web client (uses cookie); present = native client
+}
+```
+
+**`POST /auth/refresh` controller method:**
+```typescript
+@Post('refresh')
+@HttpCode(200)
+async refresh(
+  @Req() req: Request,
+  @Body() body: RefreshTokenDto,
+  @Res({ passthrough: true }) res: Response,
+) {
+  const incomingToken = req.cookies?.refresh_token ?? body.refresh_token;
+  if (!incomingToken) throw new UnauthorizedException('No refresh token provided');
+  const { accessToken, refreshToken } = await this.authService.refreshTokens(incomingToken);
+  return this.issueTokenResponse(res, accessToken, refreshToken);
 }
 ```
 

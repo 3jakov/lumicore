@@ -42,13 +42,12 @@ Deliver a working, deployable, bilingual (ET/RU) field management platform that 
 | Gallery | GPS photo capture (PWA) + company-wide gallery |
 | Documents | Per-project file upload/download |
 | Tools | Basic list + status + assign to project/task |
-| Chat | Auto-create on project + WebSocket messages |
 | Settings | Roles, tags, company info, task templates |
 | Infrastructure | Docker, CI/CD, VPS deployment |
 | PWA | Service worker, manifest, camera, push notifications |
 | i18n | ET + RU, language per employee profile |
 
-**Out of scope (Phase 2):** Eelarve/budget, standalone CRM client entity, custom fields (Lisaväljad), materials module, accounting integration.
+**Out of scope (Phase 2):** Eelarve/budget, standalone CRM client entity, custom fields (Lisaväljad), materials module, accounting integration, Chat/Vestlus (internal messaging).
 
 ---
 
@@ -142,13 +141,13 @@ Photo capture and file storage.
 - Frontend: PhotoGrid + Lightbox
 - Frontend: Documents tab (upload, list, download)
 
-### M6 — Tools + Chat + Settings (Estimated: 4–5 days)
+### M6 — Tools + Doc Acknowledgement + Settings (Estimated: 4–5 days)
 Remaining modules.
 - Backend: Tools CRUD
-- Backend: Chat (conversations, messages, WebSocket events)
+- Backend: Document Acknowledgement (internal docs, assignments, compliance matrix)
 - Backend: Settings (tags, roles, company, task templates CRUD)
 - Frontend: Tools list + tool detail
-- Frontend: Chat sidebar + message list + message input
+- Frontend: Doc Acknowledgement (employee view + admin compliance matrix)
 - Frontend: Settings pages (profile, company, tags, roles, templates)
 
 ### M7 — PWA + i18n + Polish (Estimated: 3–4 days)
@@ -195,9 +194,9 @@ Ship to production.
 - [ ] `BE-013` `RolesGuard` + `@Roles()` decorator
 - [ ] `BE-014` `ProjectAccessGuard`
 - [ ] `BE-015` `POST /auth/otp/request` — store hashed OTP in Redis (5 min TTL)
-- [ ] `BE-016` `POST /auth/otp/verify` — validate OTP, issue JWT + refresh token (httpOnly cookie)
-- [ ] `BE-017` `POST /auth/login` — email+password (bcrypt), rate limit 5/15min per IP
-- [ ] `BE-018` `POST /auth/refresh` — rotate refresh token
+- [ ] `BE-016` `POST /auth/otp/verify` — validate OTP; set httpOnly cookie **and** return `{ access_token, refresh_token }` in body (dual-mode; see CLAUDE.md `issueTokenResponse` helper)
+- [ ] `BE-017` `POST /auth/login` — email+password (bcrypt), rate limit 5/15min per IP; same dual-mode response as BE-016
+- [ ] `BE-018` `POST /auth/refresh` — accept token from cookie (priority) OR `{ refresh_token }` body field; rotate token; dual-mode response; implement `RefreshTokenDto` with optional `refresh_token` field
 - [ ] `BE-019` `POST /auth/logout` — invalidate refresh token
 - [ ] `BE-020` `InvitationService` — SMS stub + email stub (configurable via env)
 - [ ] `BE-021` `SensitiveFieldsInterceptor` — strips `hourly_rate`, `personal_id`, `birth_date` for non-admin
@@ -206,11 +205,11 @@ Ship to production.
 #### E3: Projects
 - [ ] `BE-023` `ProjectsModule` scaffold
 - [ ] `BE-024` `GET /projects` — list with filters (status, tags, manager, date range), pagination
-- [ ] `BE-025` `POST /projects` — create; auto-prefix (QUOT/P); auto-create chat if flag set
+- [ ] `BE-025` `POST /projects` — create; auto-prefix (QUOT/P based on status, BR-004)
 - [ ] `BE-026` `GET /projects/:id` — single project with all relations
 - [ ] `BE-027` `PATCH /projects/:id` — partial update; prefix recalculated on status change (BR-004)
 - [ ] `BE-028` `DELETE /projects/:id` — soft delete (set `archived_at`)
-- [ ] `BE-029` Unit tests: prefix logic, soft delete, auto-chat creation
+- [ ] `BE-029` Unit tests: prefix logic (BR-004), soft delete
 
 #### E4: Tasks
 - [ ] `BE-030` `TasksModule` scaffold
@@ -382,7 +381,7 @@ All written by Claude Code. Consumed by Codex. Plain TypeScript — no decorator
 - [ ] `ST-009` `doc-acknowledgement.types.ts` — `InternalDocument`, `DocAckAssignment`, `DocAcknowledgement`, `DocAckStatus`
 - [ ] `ST-010` `api-responses.types.ts` — `PaginatedResponse<T>`, `ApiError`
 - [ ] `ST-011` `settings.types.ts` — `Tag`, `Role`, `CompanySettings`, `TaskTemplate`
-- [ ] `ST-012` `websocket.types.ts` — all Socket.io event payloads (timer:started, chat:message, etc.)
+- [ ] `ST-012` `websocket.types.ts` — all Socket.io event payloads (timer:started, timer:stopped, timer:paused, timer:resumed)
 - [ ] `ST-013` Export all from `index.ts`
 
 ---
@@ -402,9 +401,9 @@ All written by Claude Code. Consumed by Codex. Plain TypeScript — no decorator
 
 ### 6.5 Testing
 
-- [ ] `TEST-001` Unit: `auth.service.spec.ts` — OTP expiry, wrong OTP, rate limit
+- [ ] `TEST-001` Unit: `auth.service.spec.ts` — OTP expiry, wrong OTP, rate limit; **dual-mode refresh**: (a) valid cookie → new tokens; (b) valid body `refresh_token` → new tokens; (c) neither → 401; (d) old token after rotation → 401 (replay blocked)
 - [ ] `TEST-002` Unit: `time-tracking.service.spec.ts` — BR-001, BR-002, duration with pauses, duration never from body
-- [ ] `TEST-003` Unit: `projects.service.spec.ts` — prefix logic, soft delete, auto-chat
+- [ ] `TEST-003` Unit: `projects.service.spec.ts` — prefix logic (BR-004), soft delete
 - [ ] `TEST-004` Unit: `employees.service.spec.ts` — BR-007 invite trigger, BR-013 sensitive field
 - [ ] `TEST-005` Unit: `timesheet.service.spec.ts` — month boundary, Tallinn TZ conversion, negative ÜT
 - [ ] `TEST-006` E2E: `auth.e2e-spec.ts` — full OTP flow against test DB
@@ -464,8 +463,8 @@ Week 3:
 Week 4:
   Mon–Tue: BE-057..BE-066 (photos + documents backend)
            FE-029..FE-033 (gallery + documents UI)
-  Wed–Thu: BE-067..BE-082 (tools + chat + settings backend)
-           FE-034..FE-043 (tools + chat + settings UI)
+  Wed–Thu: BE-067..BE-082 (tools + doc-ack + settings backend)
+           FE-034..FE-043 (tools + doc-ack + settings UI)
   Fri:     FE-044..FE-048 (PWA + i18n)
 
 Week 5:
@@ -490,7 +489,7 @@ Week 5:
 | **Time Tracking backend** | BE-038..BE-048 |
 | Employees backend | BE-049..BE-056 |
 | Photos + Documents backend | BE-057..BE-066 |
-| Tools + Chat + Settings backend | BE-067..BE-082 |
+| Tools + Doc Acknowledgement + Settings backend | BE-067..BE-082 |
 | CI/CD pipelines | BE-083..BE-086 |
 | Backend unit + e2e tests | TEST-001..TEST-007 |
 
@@ -505,7 +504,7 @@ Week 5:
 | **Timer UI** (TimerStartModal, TimerWidget) | FE-018..FE-023 |
 | Team + Employees UI | FE-024..FE-028 |
 | Gallery + Documents UI | FE-029..FE-033 |
-| Tools + Chat + Settings UI | FE-034..FE-043 |
+| Tools + Doc Acknowledgement + Settings UI | FE-034..FE-043 |
 | PWA + i18n | FE-044..FE-048 |
 | Frontend tests | TEST-008..TEST-009 |
 
@@ -528,7 +527,7 @@ Window C (Week 3):
   Codex: time tracking UI (TimerStartModal is highest priority)
 
 Window D (Week 4):
-  Claude Code: photos/docs/tools/chat/settings backend
+  Claude Code: photos/docs/tools/doc-ack/settings backend
   Codex: all remaining UI modules
 ```
 
@@ -547,10 +546,13 @@ Window D (Week 4):
 ### M1 — Auth + Shell
 - [ ] Employee can log in via OTP (phone) and receive JWT
 - [ ] Employee can log in via email+password
-- [ ] Access token refreshes automatically via httpOnly cookie
+- [ ] `POST /auth/refresh` accepts token from httpOnly cookie (web path)
+- [ ] `POST /auth/refresh` accepts token from request body `{ refresh_token }` (native path)
+- [ ] Both paths return `{ access_token, refresh_token }` in body AND set httpOnly cookie
+- [ ] Replaying a used refresh token returns 401 (rotation enforcement)
 - [ ] AppShell renders with sidebar navigation
 - [ ] Unauthenticated users are redirected to /login
-- [ ] Auth unit tests pass
+- [ ] Auth unit tests pass (including all 4 dual-mode cases in TEST-001)
 
 ### M2 — Projects + Tasks
 - [ ] Admin can create a project with all fields; prefix auto-sets (QUOT/P)
@@ -582,10 +584,11 @@ Window D (Week 4):
 - [ ] Thumbnail generated server-side
 - [ ] Documents upload and download via presigned URLs
 
-### M6 — Tools + Chat + Settings
+### M6 — Tools + Doc Acknowledgement + Settings
 - [ ] Tools list with status filter works
-- [ ] Project auto-creates group chat when flag enabled
-- [ ] Chat messages deliver in real-time via WebSocket
+- [ ] Admin can upload internal document and assign it to employees/groups
+- [ ] Employee sees pending acknowledgements; can acknowledge with confirmation
+- [ ] Admin compliance matrix shows acknowledgement status per employee
 - [ ] Tags, roles, task templates are manageable in Settings
 
 ### M7 — PWA + i18n

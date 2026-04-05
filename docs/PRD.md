@@ -26,7 +26,7 @@
 
 ## 1. Executive Summary
 
-LUMICO is replacing Remato — their current project and workforce management tool — with a purpose-built platform. The replacement must handle all operational workflows: project lifecycle management, task assignment and templates, time tracking with mandatory project linkage, team scheduling, GPS-verified photo documentation, tool tracking, and internal chat.
+LUMICO is replacing Remato — their current project and workforce management tool — with a purpose-built platform. The replacement must handle all operational workflows: project lifecycle management, task assignment and templates, time tracking with mandatory project linkage, team scheduling, GPS-verified photo documentation, tool tracking, document management, and internal document acknowledgement.
 
 This PRD covers **Phase 1: Operations Core**. Phase 2 (budget/margin, CRM, materials, accounting integration) is documented separately.
 
@@ -164,7 +164,7 @@ One employee can hold multiple roles simultaneously (e.g., Julian Kosheliev: Too
 ### 7.1 Authentication & Onboarding
 
 **FR-AUTH-01** — Login via phone number OTP or email+password.
-**FR-AUTH-02** — JWT access token (short-lived) + refresh token (long-lived, httpOnly cookie).
+**FR-AUTH-02** — JWT access token (short-lived, 15 min) + refresh token (long-lived, 7 days, rotated on every use). The refresh endpoint must be dual-mode: accept the refresh token from an httpOnly cookie (web/PWA clients) **or** from the `refresh_token` field in the request body (future native mobile clients). Both modes are implemented in Phase 1 so that no backend change is needed when native apps are introduced. The response always sets the httpOnly cookie **and** returns `{ refresh_token }` in the body.
 **FR-AUTH-03** — When an Administrator saves a new employee's phone or email, the system automatically sends an invitation (SMS or email) with a registration link.
 **FR-AUTH-04** — Employee selects preferred language (ET/RU) and time format (24h/12h) in profile settings. UI re-renders immediately on change.
 **FR-AUTH-05** — All sessions store timezone as Europe/Tallinn; all API timestamps in UTC; all display in local time.
@@ -765,7 +765,7 @@ interface TaskTemplate {
 ### 10.2 Security
 
 - JWT tokens signed with HS256 (symmetric — adequate for single-service architecture).
-- Refresh tokens stored as httpOnly secure cookies.
+- Refresh tokens delivered via httpOnly, Secure, SameSite=Strict cookie (web/PWA) **and** returned in the response body for native client storage. The `POST /auth/refresh` endpoint accepts the token from either source (cookie takes priority).
 - Sensitive employee data (hourly_rate, personal_id) only returned for Administraator.
 - All API endpoints authenticated; role-checked per route.
 - Photos served via signed S3 URLs (1-hour expiry), not public URLs.

@@ -1140,6 +1140,34 @@ interface JwtPayload {
 8. On fail: increment attempt counter in Redis (max 5 attempts, then 15min lockout)
 ```
 
+### 8.4 Refresh Token Flow (Dual-Mode)
+
+Token issuance (step 7 above) and every subsequent refresh follow the same dual-mode response:
+
+```
+POST /api/v1/auth/refresh
+
+Accepted inputs (in priority order):
+  1. Cookie:  refresh_token=<token>   (httpOnly cookie, sent automatically by browser)
+  2. Body:    { "refresh_token": "<token>" }  (explicit body field for native clients)
+
+On valid token:
+  a. Invalidate old token in DB (hash cleared)
+  b. Generate new access token (15 min) + new refresh token (7 days)
+  c. Set-Cookie: refresh_token=<new>; HttpOnly; Secure; SameSite=Strict
+  d. Respond:  { "access_token": "...", "refresh_token": "..." }
+
+On invalid/missing token:
+  → 401 Unauthorized
+
+Token rotation is atomic: old token invalidated before new one is written.
+```
+
+**Why both modes from Phase 1:**
+- Web/PWA clients rely on the cookie; they ignore the body field.
+- Future native apps cannot use httpOnly cookies — they read `refresh_token` from the body and store it in Keychain (iOS) / Keystore (Android).
+- Implementing both now means zero backend changes when native apps are built.
+
 ---
 
 ## 9. Module Dependency Map
@@ -1285,7 +1313,7 @@ docker compose exec api npx prisma migrate deploy
 | Files | S3 pre-signed URLs (no public bucket access) |
 | Auth | OTP rate limiting (max 5 attempts, 15 min lockout) |
 | Auth | Refresh token rotation (prevents replay) |
-| Auth | httpOnly, Secure, SameSite=Strict cookies for refresh tokens |
+| Auth | Refresh tokens dual-mode: httpOnly cookie (web) + response body (native). Cookie always set; body always returned. See §8.4. |
 | Sensitive data | Serializer-level field stripping for non-admin |
 
 ### 11.2 Data Privacy
