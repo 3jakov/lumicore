@@ -325,7 +325,7 @@ const tallinDate = toZonedTime(utcDate, 'Europe/Tallinn');
 Required in `apps/api/.env`:
 ```
 DATABASE_URL=postgresql://user:pass@localhost:5432/lumico
-JWT_SECRET=...          # RS256 private key path or secret
+JWT_SECRET=...          # HS256 symmetric secret
 JWT_EXPIRES_IN=15m
 REFRESH_TOKEN_SECRET=...
 REFRESH_TOKEN_EXPIRES_IN=7d
@@ -400,7 +400,10 @@ components/
 // Use getUserMedia, NOT <input type="file" capture="camera">
 // getUserMedia gives us control to prevent gallery saves
 const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
-// Draw to canvas, get blob, call GPS, upload blob to /api/v1/photos/upload
+// Draw to canvas, get blob, call GPS
+// Step 1: POST /api/v1/photos/upload-url → get presigned S3 PUT URL
+// Step 2: PUT blob directly to S3 using presigned URL
+// Step 3: POST /api/v1/photos with { s3_key, project_id, task_id, gps_lat, gps_lng, taken_at }
 // Never append to DOM in a way that triggers save-to-gallery
 ```
 
