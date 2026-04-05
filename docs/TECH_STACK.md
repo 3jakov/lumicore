@@ -27,7 +27,7 @@
 ```
 ┌─────────────────────────────────────────────────────┐
 │                    Browser / PWA                    │
-│           Next.js 14  +  Tailwind CSS               │
+│           Next.js 16  +  Tailwind CSS 3              │
 └──────────────┬──────────────────────┬───────────────┘
                │ REST (HTTPS)         │ WebSocket (WSS)
                ▼                      ▼
@@ -49,12 +49,12 @@ All services run in Docker containers. Development uses docker-compose. Producti
 
 ## 2. Frontend
 
-### 2.1 Core Framework: Next.js 14
+### 2.1 Core Framework: Next.js 16
 
-**Chosen:** Next.js 14 (App Router)
+**Chosen:** Next.js 16 (App Router)
 **Language:** TypeScript (strict mode)
 
-**Why Next.js 14:**
+**Why Next.js 16:**
 - App Router enables React Server Components — reduces JS bundle sent to mobile PWA clients, which is critical for field workers on 4G.
 - Built-in image optimization for photo gallery thumbnails.
 - Strong TypeScript support, file-based routing reduces boilerplate.
@@ -76,12 +76,14 @@ All services run in Docker containers. Development uses docker-compose. Producti
 
 No CSS Modules, no styled-components, no Emotion. All styles are Tailwind utilities. Custom design tokens added to `tailwind.config.ts` if needed.
 
+**Staying on v3 (not v4):** Tailwind CSS 4 drops support for some legacy CSS features used on iOS Safari 15–16. Phase 1 targets iOS Safari 15+, so v3 is required until that minimum is raised. Revisit when minimum iOS target moves to Safari 17+.
+
 ### 2.3 State Management
 
 | Concern | Tool | Rationale |
 |---|---|---|
 | Server/async state | TanStack Query (React Query) v5 | Caching, background refetch, optimistic updates for mutations |
-| Global client state | Zustand v4 | Lightweight; used only for: auth state, current user, active timer state, WebSocket connection state |
+| Global client state | Zustand v5 | Lightweight; used only for: auth state, current user, active timer state, WebSocket connection state |
 | Form state | React Hook Form + Zod | Type-safe forms, schema validation that mirrors backend DTOs |
 | URL state | Next.js `useSearchParams` | Filters, pagination — bookmarkable URLs |
 
@@ -107,7 +109,7 @@ No CSS Modules, no styled-components, no Emotion. All styles are Tailwind utilit
 
 ### 3.1 Core Framework: NestJS
 
-**Chosen:** NestJS 10 + TypeScript (strict mode)
+**Chosen:** NestJS 11 + TypeScript (strict mode)
 **Runtime:** Node.js 20 LTS
 
 **Why NestJS:**
@@ -538,11 +540,11 @@ Strict mode enabled in all packages:
 |---|---|---|
 | Node.js | 20 LTS | runtime |
 | TypeScript | 5.4 | all |
-| Next.js | 14.2 | web |
-| React | 18.3 | web |
-| Tailwind CSS | 3.4 | web |
+| Next.js | 16.x | web |
+| React | 19.x | web |
+| Tailwind CSS | 3.x | web — pinned to v3; see §2.2 |
 | @tanstack/react-query | 5.x | web |
-| Zustand | 4.x | web |
+| Zustand | 5.x | web |
 | React Hook Form | 7.x | web |
 | Zod | 3.x | web |
 | socket.io-client | 4.x | web |
@@ -551,14 +553,14 @@ Strict mode enabled in all packages:
 | @radix-ui/react-* | latest | web |
 | lucide-react | latest | web |
 | next-pwa | 5.x | web |
-| NestJS | 10.x | api |
-| @nestjs/platform-express | 10.x | api |
-| @nestjs/websockets | 10.x | api |
-| @nestjs/platform-socket.io | 10.x | api |
-| @nestjs/swagger | 7.x | api |
+| NestJS | 11.x | api |
+| @nestjs/platform-express | 11.x | api |
+| @nestjs/websockets | 11.x | api |
+| @nestjs/platform-socket.io | 11.x | api |
+| @nestjs/swagger | 8.x | api |
 | socket.io | 4.x | api |
-| Prisma | 5.x | api |
-| @prisma/client | 5.x | api |
+| Prisma | 6.x | api |
+| @prisma/client | 6.x | api |
 | class-validator | 0.14.x | api |
 | class-transformer | 0.5.x | api |
 | bcrypt | 5.x | api |
@@ -576,7 +578,7 @@ Strict mode enabled in all packages:
 ## 13. Decision Log
 
 ### ADR-001: Next.js App Router over Pages Router
-**Decision:** Use App Router (introduced in Next.js 13, stable in 14).
+**Decision:** Use App Router (introduced in Next.js 13, mature from 14, current version 16).
 **Reason:** Server Components reduce JavaScript sent to field workers on mobile. Streaming enables faster perceived performance for dashboard loads.
 **Trade-off:** App Router is newer; some third-party libraries still have limited RSC support. Mitigated by using `'use client'` wrapper components where needed.
 

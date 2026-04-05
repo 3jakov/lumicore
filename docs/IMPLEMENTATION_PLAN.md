@@ -295,7 +295,7 @@ Ship to production.
 ### 6.2 Frontend (Codex)
 
 #### E0: Web App Setup
-- [ ] `FE-001` Init `apps/web` (Next.js 14, App Router, TypeScript strict)
+- [ ] `FE-001` Init `apps/web` (Next.js 16, App Router, TypeScript strict)
 - [ ] `FE-002` Tailwind CSS config with status color tokens from CLAUDE.md
 - [ ] `FE-003` `lib/api-client.ts` — typed fetch wrapper with auth header injection and token refresh
 - [ ] `FE-004` `lib/socket.ts` — Socket.io singleton client
@@ -614,7 +614,7 @@ These are the first tasks to execute, in order:
 |---|---|---|---|---|
 | 1 | `BE-001` | Init monorepo: pnpm-workspace.yaml, root tsconfig, .prettierrc, .eslintrc | Claude Code | Everything |
 | 2 | `BE-002` | Create `apps/api` NestJS project with strict TypeScript | Claude Code | All backend |
-| 3 | `FE-web-init` | Create `apps/web` Next.js 14 project with Tailwind + strict TypeScript | Codex | All frontend |
+| 3 | `FE-web-init` | Create `apps/web` Next.js 16 project with Tailwind CSS 3 + strict TypeScript | Codex | All frontend |
 | 4 | `ST-001` | Init `packages/shared-types` with build script | Claude Code | All shared types |
 | 5 | `INF-001` | `docker-compose.yml` with postgres:15, redis:7, minio services | Claude Code | Local dev |
 | 6 | `BE-006` | Write full `prisma/schema.prisma` based on ARCHITECTURE.md §4 | Claude Code | All DB work |

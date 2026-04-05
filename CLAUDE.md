@@ -36,7 +36,7 @@ This file is the primary reference for AI agents working on this codebase. Read 
 │   │   ├── test/
 │   │   └── package.json
 │   │
-│   └── web/                   # Next.js 14 frontend (Codex owns this)
+│   └── web/                   # Next.js 16 frontend (Codex owns this)
 │       ├── app/               # App Router
 │       ├── components/
 │       ├── hooks/
@@ -411,7 +411,7 @@ SOCKET_CORS_ORIGIN=http://localhost:3000
 
 ### Framework & Patterns
 
-- **Next.js 14** with the App Router.
+- **Next.js 16** with the App Router.
 - Server Components by default. Use `'use client'` only when needed (event handlers, browser APIs, hooks).
 - State management: React Query (TanStack Query) for server state. Zustand for minimal global client state (auth, current user, active timer).
 - Styling: Tailwind CSS. No CSS modules or styled-components.
