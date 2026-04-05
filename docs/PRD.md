@@ -709,7 +709,7 @@ interface TaskTemplate {
 
 ### 10.2 Security
 
-- JWT tokens signed with RS256.
+- JWT tokens signed with HS256 (symmetric — adequate for single-service architecture).
 - Refresh tokens stored as httpOnly secure cookies.
 - Sensitive employee data (hourly_rate, personal_id) only returned for Administraator.
 - All API endpoints authenticated; role-checked per route.

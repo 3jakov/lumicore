@@ -188,11 +188,19 @@ GET    /api/v1/employees
 POST   /api/v1/employees
 GET    /api/v1/employees/:id
 PATCH  /api/v1/employees/:id
+PATCH  /api/v1/employees/me           # Update own profile (language, name, etc.)
 POST   /api/v1/employees/:id/archive
 
-# Photos
-POST   /api/v1/photos/upload          # Multipart upload
+# Photos (two-step presigned upload)
+POST   /api/v1/photos/upload-url      # Step 1: get presigned S3 PUT URL
+POST   /api/v1/photos                 # Step 2: save metadata after direct S3 upload
 GET    /api/v1/photos                 # List with filters
+
+# Documents
+POST   /api/v1/documents/upload-url   # Step 1: get presigned S3 PUT URL
+POST   /api/v1/documents              # Step 2: save metadata after direct S3 upload
+GET    /api/v1/documents              # List (filter by project_id)
+DELETE /api/v1/documents/:id          # Hard delete (not a business entity)
 
 # Tools
 GET    /api/v1/tools
