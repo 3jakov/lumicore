@@ -901,7 +901,7 @@ NestJS HTTP Adapter (Express)
     │
     ▼
 Global Middleware
-├── CORS (configured origins)
+├── CORS (configured origins — also permits requests with no Origin header for native app clients)
 ├── Helmet (security headers)
 ├── Request logging
 └── Rate limiting (Redis-backed, per IP)

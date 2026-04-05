@@ -268,6 +268,7 @@ lumico-files/
 - Stored as: httpOnly, Secure, SameSite=Strict cookie.
 - Rotated on every use (refresh token rotation prevents replay attacks).
 - Stored in DB as a hash to allow revocation.
+- **Native app readiness:** `POST /auth/refresh` must accept the refresh token both from the httpOnly cookie (web clients) and from the `refresh_token` field in the request body (future native clients). Implement dual-mode in Phase 1 — no backend change needed when native apps are introduced.
 
 **Phone OTP Flow:**
 1. `POST /api/v1/auth/otp/request` — employee provides phone number. System sends 6-digit OTP via SMS (Twilio or local Estonian SMS provider).
@@ -552,7 +553,7 @@ Strict mode enabled in all packages:
 **Decision:** Progressive Web App for Phase 1.
 **Reason:** Team of 22 does not justify App Store/Play Store publishing, code signing, and device management overhead. PWA covers camera, GPS, and push notifications on modern devices.
 **Trade-off:** iOS Safari Web Push was limited before iOS 16.4. Current minimum iOS 15 means some users may not receive push notifications. Acceptable for Phase 1 — employees are in frequent contact via chat.
-**Revisit:** If field workers consistently report push notification failures on iOS, consider a React Native thin shell in Phase 2.
+**Revisit trigger:** If field workers on iOS Safari <16.4 consistently miss push notifications, or if the team grows beyond 30 field workers, evaluate React Native in Phase 2. When building native apps, the NestJS backend requires no changes — only the auth refresh flow (dual-mode cookie + body) and the NotificationService (add APNs/FCM transport) need to be extended. See `docs/MOBILE_READINESS.md`.
 
 ### ADR-004: Socket.io over raw WebSocket
 **Decision:** Socket.io with NestJS gateway.

@@ -584,6 +584,7 @@ pnpm --filter web dev   # runs on :3000
 8. **Do not mix ET and RU strings in a single string constant.** All strings must be in both translation files.
 9. **Do not allow timer start without project validation check on the backend.** The frontend validation is UX; the backend validation is the source of truth.
 10. **Do not send full employee objects in list responses if the requester is not an admin.** Strip sensitive fields in the serializer.
+11. **Do not implement data mutations as Next.js Server Actions or Next.js API routes.** All mutations must go through `POST/PATCH/DELETE /api/v1/*` NestJS endpoints. Server Actions are web-only and cannot be called by future native iOS/Android apps.
 
 ---
 
