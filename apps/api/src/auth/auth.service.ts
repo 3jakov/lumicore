@@ -7,7 +7,7 @@ import {
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
-import { createHash, randomBytes } from 'crypto';
+import { createHash, randomBytes, randomInt } from 'crypto';
 import { addMinutes, addDays } from 'date-fns';
 import { PrismaService } from '../database/prisma.service';
 import { CurrentUser, AuthResponse } from '@lumicore/shared-types';
@@ -58,8 +58,8 @@ export class AuthService {
       return { message: 'If the number is registered, a code has been sent' };
     }
 
-    // Generate 6-digit OTP
-    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    // Generate cryptographically secure 6-digit OTP
+    const code = randomInt(100000, 1000000).toString();
     const codeHash = await bcrypt.hash(code, 10);
     const expiresAt = addMinutes(new Date(), 10);
 

@@ -112,12 +112,10 @@ export class AuthController {
 
   @Post('logout')
   @HttpCode(200)
-  @UseGuards(JwtAuthGuard)
   async logout(
     @Req() req: Request,
     @Body() body: RefreshTokenDto,
     @Res({ passthrough: true }) res: Response,
-    @CurrentUserDecorator() _user: CurrentUser,
   ): Promise<{ message: string }> {
     const token =
       (req.cookies as Record<string, string>)?.[REFRESH_COOKIE] ?? body.refresh_token;
