@@ -1,11 +1,15 @@
-import { PlaceholderRoutePage } from '@/components/layout/placeholder-route-page';
+import { PageHeader } from '@/components/layout/page-header';
+import { ProfileForm } from '@/components/settings/profile-form';
 
 export default function ProfileSettingsPage(): JSX.Element {
   return (
-    <PlaceholderRoutePage
-      eyebrow="Settings"
-      title="Profile settings scaffold"
-      description="Prepared for language, time format, and personal profile preferences."
-    />
+    <div className="space-y-6">
+      <PageHeader
+        eyebrow="Settings"
+        title="Profile"
+        description="Manage your name, language, and time display preferences."
+      />
+      <ProfileForm />
+    </div>
   );
 }
