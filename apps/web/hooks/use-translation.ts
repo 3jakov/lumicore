@@ -16,7 +16,8 @@ type TranslationApi = {
 };
 
 export function useTranslation(): TranslationApi {
-  const language = useAuthStore((state) => state.language ?? fallbackLanguage);
+  // Language enum values ('et'/'ru') are valid SupportedLanguage keys at runtime
+  const language = useAuthStore((state) => state.language) as SupportedLanguage;
 
   return useMemo(() => {
     const dictionary = dictionaries[language] ?? dictionaries[fallbackLanguage];

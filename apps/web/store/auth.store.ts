@@ -2,32 +2,27 @@
 
 import { create } from 'zustand';
 
-import type { SupportedLanguage } from '@/lib/i18n';
-
-type SessionUser = {
-  id: number;
-  fullName: string;
-  language: SupportedLanguage;
-};
+import type { CurrentUser } from '@lumicore/shared-types';
+import { Language } from '@lumicore/shared-types';
 
 type AuthState = {
   accessToken: string | null;
-  currentUser: SessionUser | null;
-  language: SupportedLanguage;
-  setSession: (payload: { accessToken: string | null; currentUser: SessionUser | null }) => void;
-  setLanguage: (language: SupportedLanguage) => void;
+  currentUser: CurrentUser | null;
+  language: Language;
+  setSession: (payload: { accessToken: string; currentUser: CurrentUser }) => void;
+  setLanguage: (language: Language) => void;
   clearSession: () => void;
 };
 
 export const useAuthStore = create<AuthState>((set) => ({
   accessToken: null,
   currentUser: null,
-  language: 'et',
+  language: Language.ET,
   setSession: ({ accessToken, currentUser }) =>
     set(() => ({
       accessToken,
       currentUser,
-      language: currentUser?.language ?? 'et',
+      language: currentUser.language,
     })),
   setLanguage: (language) =>
     set((state) => ({
@@ -38,6 +33,6 @@ export const useAuthStore = create<AuthState>((set) => ({
     set(() => ({
       accessToken: null,
       currentUser: null,
-      language: 'et',
+      language: Language.ET,
     })),
 }));

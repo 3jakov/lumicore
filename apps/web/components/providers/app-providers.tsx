@@ -2,6 +2,7 @@
 
 import type { ReactNode } from 'react';
 
+import { AuthBootstrap } from '@/components/providers/auth-bootstrap';
 import { QueryProvider } from '@/components/providers/query-provider';
 
 type AppProvidersProps = Readonly<{
@@ -9,5 +10,9 @@ type AppProvidersProps = Readonly<{
 }>;
 
 export function AppProviders({ children }: AppProvidersProps): JSX.Element {
-  return <QueryProvider>{children}</QueryProvider>;
+  return (
+    <QueryProvider>
+      <AuthBootstrap>{children}</AuthBootstrap>
+    </QueryProvider>
+  );
 }
