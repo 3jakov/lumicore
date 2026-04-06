@@ -1,5 +1,6 @@
 // Barrel export — all shared types and enums
 export * from './enums';
+export * from './auth.types';
 export * from './project.types';
 export * from './task.types';
 export * from './time-entry.types';
