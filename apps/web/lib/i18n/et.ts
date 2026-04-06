@@ -1,0 +1,16 @@
+export const et = {
+  'app.name': 'Lumicore',
+  'nav.dashboard': 'Töölaud',
+  'nav.projects': 'Projektid',
+  'nav.tasks': 'Tööd',
+  'nav.time': 'Tööaeg',
+  'nav.team': 'Meeskond',
+  'nav.tools': 'Tööriistad',
+  'nav.documents': 'Minu dokumendid',
+  'nav.settings': 'Seaded',
+  'auth.login.title': 'Sisselogimine',
+  'auth.login.otp': 'Sisene telefoninumbri kaudu',
+  'auth.login.password': 'Sisene e-posti ja parooliga',
+  'shell.placeholder': 'Vundament on valmis järgmisteks etappideks.',
+  'common.comingSoon': 'Tulemas',
+} as const;

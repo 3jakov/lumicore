@@ -1,0 +1,77 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --font-sans: 'Aptos', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+  --font-mono: 'IBM Plex Mono', 'SFMono-Regular', Consolas, monospace;
+
+  --color-surface-0: #f3f2ea;
+  --color-surface-1: #fbfaf5;
+  --color-surface-2: #ffffff;
+  --color-surface-inverse: #1b2119;
+
+  --color-text-primary: #172017;
+  --color-text-secondary: #425143;
+  --color-text-muted: #667267;
+  --color-text-inverse: #f6f7f1;
+
+  --color-border-subtle: rgba(23, 32, 23, 0.08);
+  --color-border-strong: rgba(23, 32, 23, 0.16);
+
+  --shell-sidebar-width: 17rem;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  background:
+    radial-gradient(circle at top left, rgba(125, 145, 74, 0.16), transparent 28%),
+    linear-gradient(180deg, #f0efe5 0%, #f7f6ef 38%, #faf9f3 100%);
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  color: var(--color-text-primary);
+  font-family: var(--font-sans);
+  background: transparent;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+::selection {
+  background: rgba(60, 143, 137, 0.18);
+}
+
+@layer base {
+  h1,
+  h2,
+  h3,
+  h4 {
+    margin: 0;
+    letter-spacing: -0.03em;
+  }
+}
+
+@layer components {
+  .panel {
+    @apply rounded-2xl border border-border-subtle bg-surface-2 shadow-shell;
+  }
+
+  .pill {
+    @apply inline-flex items-center rounded-full border border-border-subtle bg-surface-1 px-3 py-1 text-xs font-semibold text-text-secondary;
+  }
+}

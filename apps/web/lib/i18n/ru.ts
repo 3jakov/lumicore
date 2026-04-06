@@ -1,0 +1,16 @@
+export const ru = {
+  'app.name': 'Lumicore',
+  'nav.dashboard': 'Панель',
+  'nav.projects': 'Проекты',
+  'nav.tasks': 'Работы',
+  'nav.time': 'Время',
+  'nav.team': 'Команда',
+  'nav.tools': 'Инструменты',
+  'nav.documents': 'Мои документы',
+  'nav.settings': 'Настройки',
+  'auth.login.title': 'Вход',
+  'auth.login.otp': 'Войти по номеру телефона',
+  'auth.login.password': 'Войти по e-mail и паролю',
+  'shell.placeholder': 'Основа готова для следующих этапов.',
+  'common.comingSoon': 'Скоро',
+} as const;
