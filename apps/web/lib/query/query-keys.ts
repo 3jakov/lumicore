@@ -6,14 +6,15 @@
  * no-filters calls produce the same key: [..., undefined].
  *
  * Invalidation pattern:
- *   queryClient.invalidateQueries({ queryKey: queryKeys.projects.all })
- *   → invalidates every projects cache entry (list + any future detail keys)
+ *   queryClient.invalidateQueries({ queryKey: queryKeys.projects.lists })
+ *   → invalidates every projects list cache entry without touching detail keys
  */
 type ListFilters = Record<string, unknown> | undefined;
 
 export const queryKeys = {
   projects: {
     all: ['projects'] as const,
+    lists: ['projects', 'list'] as const,
     list: (filters?: ListFilters) => ['projects', 'list', filters] as const,
     detail: (id: number) => ['projects', 'detail', id] as const,
   },

@@ -47,7 +47,7 @@ export function useUpdateProject(id: number) {
     try {
       const updated = await apiClient.patch<ProjectDetail>(`/projects/${id}`, { body: dto });
       queryClient.setQueryData(queryKeys.projects.detail(updated.id), updated);
-      await queryClient.invalidateQueries({ queryKey: queryKeys.projects.all });
+      await queryClient.invalidateQueries({ queryKey: queryKeys.projects.lists });
       router.replace(`/projects/${updated.id}`);
     } catch (err) {
       setState({ isLoading: false, error: getErrorMessage(err) });

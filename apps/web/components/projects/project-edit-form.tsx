@@ -68,6 +68,7 @@ export function ProjectEditForm({ id }: ProjectEditFormProps): JSX.Element {
 
   const [form, setForm] = useState<ProjectFormState>(emptyProjectFormState);
   const [initialForm, setInitialForm] = useState<ProjectFormState>(emptyProjectFormState);
+  const [isInitialized, setIsInitialized] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
 
   const helperText = useMemo(
@@ -77,13 +78,14 @@ export function ProjectEditForm({ id }: ProjectEditFormProps): JSX.Element {
   );
 
   useEffect(() => {
-    if (!data) return;
+    if (!data || isInitialized) return;
 
     const normalized = normalizeProjectFormState(data);
     setForm(normalized);
     setInitialForm(normalized);
+    setIsInitialized(true);
     setLocalError(null);
-  }, [data]);
+  }, [data, isInitialized]);
 
   const trimmedName = form.name.trim();
   const hasChanges = hasProjectFormChanges(initialForm, form);

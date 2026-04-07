@@ -47,7 +47,7 @@ export function useCreateProject() {
     try {
       const created = await apiClient.post<ProjectDetail>('/projects', { body: dto });
       queryClient.setQueryData(queryKeys.projects.detail(created.id), created);
-      await queryClient.invalidateQueries({ queryKey: queryKeys.projects.all });
+      await queryClient.invalidateQueries({ queryKey: queryKeys.projects.lists });
       router.replace(`/projects/${created.id}`);
     } catch (err) {
       setState({ isLoading: false, error: getErrorMessage(err) });
