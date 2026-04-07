@@ -23,8 +23,7 @@ export function ProjectCreateForm(): JSX.Element {
   const trimmedName = form.name.trim();
   const canSubmit = isAdmin && trimmedName.length > 0 && !isLoading;
   const helperText = useMemo(
-    () =>
-      'Project manager is a numeric employee ID for now. It will be replaced with an employee selector once the Employees module is ready.',
+    () => 'Select an employee to own the project, or leave it unassigned for now.',
     [],
   );
 

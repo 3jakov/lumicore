@@ -72,8 +72,7 @@ export function ProjectEditForm({ id }: ProjectEditFormProps): JSX.Element {
   const [localError, setLocalError] = useState<string | null>(null);
 
   const helperText = useMemo(
-    () =>
-      'Project manager is a numeric employee ID for now. It will be replaced with an employee selector once the Employees module is ready.',
+    () => 'Select an employee to own the project, or leave it unassigned for now.',
     [],
   );
 

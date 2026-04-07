@@ -2,7 +2,7 @@
 
 import { ProjectStatus, type CreateProjectDto, type ProjectDetail, type UpdateProjectDto } from '@lumicore/shared-types';
 
-import { EmployeeSelector } from '@/components/ui/employee-selector';
+import { EmployeeSelect } from '@/components/employees/employee-select';
 
 const inputCls =
   'w-full rounded-xl border border-border-subtle bg-surface-1 px-4 py-3 text-sm text-text-primary placeholder:text-text-muted focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500/20 disabled:opacity-50 transition';
@@ -262,7 +262,7 @@ export function ProjectFormFields({
         <label className="text-sm font-semibold text-text-primary" htmlFor="project-manager-id">
           Project manager
         </label>
-        <EmployeeSelector
+        <EmployeeSelect
           id="project-manager-id"
           value={form.project_manager_id}
           onChange={(value) => onFieldChange('project_manager_id', value)}
