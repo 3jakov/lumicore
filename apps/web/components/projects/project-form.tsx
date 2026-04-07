@@ -2,6 +2,8 @@
 
 import { ProjectStatus, type CreateProjectDto, type ProjectDetail, type UpdateProjectDto } from '@lumicore/shared-types';
 
+import { EmployeeSelector } from '@/components/ui/employee-selector';
+
 const inputCls =
   'w-full rounded-xl border border-border-subtle bg-surface-1 px-4 py-3 text-sm text-text-primary placeholder:text-text-muted focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500/20 disabled:opacity-50 transition';
 
@@ -258,18 +260,13 @@ export function ProjectFormFields({
 
       <div className="space-y-1.5">
         <label className="text-sm font-semibold text-text-primary" htmlFor="project-manager-id">
-          Project manager ID
+          Project manager
         </label>
-        <input
+        <EmployeeSelector
           id="project-manager-id"
-          type="number"
-          min={1}
-          step={1}
           value={form.project_manager_id}
-          onChange={(event) => onFieldChange('project_manager_id', event.target.value)}
+          onChange={(value) => onFieldChange('project_manager_id', value)}
           disabled={disabled}
-          className={inputCls}
-          placeholder="Optional employee ID"
         />
         <p className="text-xs leading-5 text-text-muted">{helperText}</p>
       </div>

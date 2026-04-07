@@ -1,11 +1,7 @@
-import type { EmployeeGroup, Priority, ProjectStatus, TaskStatus } from '@lumicore/shared-types';
+import type { Priority, TaskStatus } from '@lumicore/shared-types';
 
-export type ProjectSummary = {
-  id: number;
-  display_id?: string;
-  name: string;
-  status: ProjectStatus;
-};
+// ProjectSummary and ProjectDetail live in @lumicore/shared-types — import from there.
+// EmployeeSummary lives in @lumicore/shared-types — import from there.
 
 export type TaskSummary = {
   id: number;
@@ -22,10 +18,4 @@ export type TimeEntrySummary = {
   task_id?: number;
   started_at: string;
   ended_at?: string;
-};
-
-export type EmployeeSummary = {
-  id: number;
-  full_name: string;
-  group: EmployeeGroup;
 };
