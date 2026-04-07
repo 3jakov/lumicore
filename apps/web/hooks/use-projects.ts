@@ -1,7 +1,7 @@
 'use client';
 
 import type { PaginatedResponse } from '@lumicore/shared-types';
-import { useQuery, type UseQueryResult } from '@tanstack/react-query';
+import { keepPreviousData, useQuery, type UseQueryResult } from '@tanstack/react-query';
 
 import type { QueryParams } from '@/lib/api-client';
 import { apiClient } from '@/lib/api-client';
@@ -24,5 +24,6 @@ export function useProjects(
   return useQuery({
     queryKey: queryKeys.projects.list(params),
     queryFn: () => apiClient.get<PaginatedResponse<ProjectSummary>>('/projects', { params }),
+    placeholderData: keepPreviousData,
   });
 }
