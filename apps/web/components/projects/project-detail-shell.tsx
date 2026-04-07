@@ -1,14 +1,14 @@
 'use client';
 
-import type { PaginatedResponse } from '@lumicore/shared-types';
-import { ChevronLeft, FileText, FolderKanban, Layers3, Users2 } from 'lucide-react';
+import type { PaginatedResponse, ProjectDetail, ProjectSummary } from '@lumicore/shared-types';
+import { AlertCircle, ChevronLeft, FileText, FolderKanban, Layers3, Users2 } from 'lucide-react';
 import Link from 'next/link';
 import { useQueryClient } from '@tanstack/react-query';
 
 import { useProject } from '@/hooks/use-project';
 import { queryKeys } from '@/lib/query/query-keys';
-import type { ProjectSummary } from '@/types/contracts';
 
+import { ProjectDetailSection } from './project-detail-section';
 import { ProjectStatusBadge } from './project-status-badge';
 
 type ProjectDetailShellProps = Readonly<{
@@ -38,6 +38,24 @@ function LoadingState(): JSX.Element {
   );
 }
 
+function DetailLoadingPanel(): JSX.Element {
+  return (
+    <section className="panel animate-pulse p-6 md:p-8">
+      <div className="h-4 w-28 rounded bg-border-subtle" />
+      <div className="mt-4 h-7 w-48 rounded bg-border-subtle" />
+      <div className="mt-4 h-4 w-3/4 rounded bg-border-subtle" />
+      <div className="mt-8 grid gap-4 md:grid-cols-2">
+        {Array.from({ length: 6 }).map((_, index) => (
+          <div key={index} className="rounded-2xl border border-border-subtle bg-surface-1 p-4">
+            <div className="h-3 w-24 rounded bg-border-subtle" />
+            <div className="mt-3 h-4 w-3/4 rounded bg-border-subtle" />
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 function NotFoundState(): JSX.Element {
   return (
     <section className="panel flex flex-col items-start gap-4 p-6 text-left">
@@ -45,8 +63,7 @@ function NotFoundState(): JSX.Element {
         <p className="text-sm font-semibold uppercase tracking-[0.2em] text-text-muted">Projects</p>
         <h1 className="mt-2 text-2xl font-semibold text-text-primary">Project not found</h1>
         <p className="mt-2 max-w-xl text-sm leading-6 text-text-secondary">
-          This project is not available in the current list cache, and the dedicated detail endpoint
-          is still waiting on backend implementation.
+          This project could not be found or you do not have access to it.
         </p>
       </div>
       <Link
@@ -60,19 +77,41 @@ function NotFoundState(): JSX.Element {
   );
 }
 
+function DetailErrorPanel(): JSX.Element {
+  return (
+    <section className="panel flex flex-col gap-4 p-6 md:p-8">
+      <div className="flex items-start gap-3">
+        <AlertCircle className="mt-0.5 h-5 w-5 text-red-500" />
+        <div>
+          <h2 className="text-lg font-semibold text-text-primary">Failed to load project details</h2>
+          <p className="mt-1 text-sm leading-6 text-text-secondary">
+            The project header is available from cached list data, but the full detail response
+            could not be loaded right now.
+          </p>
+        </div>
+      </div>
+      <p className="text-sm text-text-secondary">
+        Try refreshing the page or return to the projects list and reopen the project.
+      </p>
+    </section>
+  );
+}
+
 export function ProjectDetailShell({ id }: ProjectDetailShellProps): JSX.Element {
   const queryClient = useQueryClient();
   const { data, error, isError, isFetching, isLoading } = useProject(id);
 
+  // Optimistic cache read: show list-level summary while the detail fetch is in-flight
   const listData = queryClient.getQueryData<PaginatedResponse<ProjectSummary>>(queryKeys.projects.list());
   const cachedProject = listData?.data.find((project) => project.id === id);
-  const project = data ?? cachedProject ?? null;
+  // data (ProjectDetail) extends ProjectSummary — both satisfy the fields used in this shell
+  const headerProject: ProjectSummary | ProjectDetail | null = data ?? cachedProject ?? null;
 
-  if (isLoading || isFetching) {
+  if (!headerProject && (isLoading || isFetching)) {
     return <LoadingState />;
   }
 
-  if (!project && isError && error) {
+  if (!headerProject && isError && error) {
     return <NotFoundState />;
   }
 
@@ -89,21 +128,25 @@ export function ProjectDetailShell({ id }: ProjectDetailShellProps): JSX.Element
       <section className="panel p-6">
         <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
           <div className="space-y-3">
-            {project?.status ? <ProjectStatusBadge status={project.status} /> : <span className="pill">Pending</span>}
+            {headerProject?.status ? (
+              <ProjectStatusBadge status={headerProject.status} />
+            ) : (
+              <span className="pill">Pending</span>
+            )}
             <div className="space-y-1">
-              {project?.display_id && (
+              {headerProject?.display_id && (
                 <p className="font-mono text-xs uppercase tracking-[0.22em] text-text-muted">
-                  {project.display_id}
+                  {headerProject.display_id}
                 </p>
               )}
               <h1 className="text-3xl font-semibold text-text-primary">
-                {project?.name ?? `Project #${id}`}
+                {headerProject?.name ?? `Project #${id}`}
               </h1>
             </div>
           </div>
           <p className="text-sm leading-6 text-text-secondary md:max-w-sm md:text-right">
-            Read-only project shell is live. Full detail data will attach here as soon as the
-            backend ProjectsModule exposes a dedicated detail endpoint.
+            Overview, tasks, documents, and team tabs will be activated as each module is
+            integrated.
           </p>
         </div>
       </section>
@@ -123,41 +166,9 @@ export function ProjectDetailShell({ id }: ProjectDetailShellProps): JSX.Element
         ))}
       </div>
 
-      <section className="panel p-6 md:p-8">
-        <div className="space-y-3">
-          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-text-muted">
-            Detail Handoff
-          </p>
-          <h2 className="text-2xl font-semibold text-text-primary">Project details loading soon</h2>
-          <p className="max-w-2xl text-sm leading-6 text-text-secondary">
-            Overview, task rollup, linked documents, and team context will move into this panel once
-            the backend project detail contract is implemented and shared-types are filled in.
-          </p>
-        </div>
-
-        <div className="mt-6 grid gap-4 md:grid-cols-3">
-          <div className="rounded-2xl border border-dashed border-border-strong bg-surface-1 p-4">
-            <p className="text-sm font-semibold text-text-primary">Overview</p>
-            <p className="mt-2 text-sm leading-6 text-text-secondary">
-              Waiting for the full Project DTO beyond status, name, and display identifier.
-            </p>
-          </div>
-          <div className="rounded-2xl border border-dashed border-border-strong bg-surface-1 p-4">
-            <p className="text-sm font-semibold text-text-primary">Documents</p>
-            <p className="mt-2 text-sm leading-6 text-text-secondary">
-              Document linkage will appear here when project detail data and document endpoints are
-              ready together.
-            </p>
-          </div>
-          <div className="rounded-2xl border border-dashed border-border-strong bg-surface-1 p-4">
-            <p className="text-sm font-semibold text-text-primary">Team</p>
-            <p className="mt-2 text-sm leading-6 text-text-secondary">
-              Assignees and live collaboration context stay intentionally deferred until the backend
-              contract exists.
-            </p>
-          </div>
-        </div>
-      </section>
+      {data ? <ProjectDetailSection project={data} /> : null}
+      {!data && (isLoading || isFetching) ? <DetailLoadingPanel /> : null}
+      {!data && isError ? <DetailErrorPanel /> : null}
     </div>
   );
 }
