@@ -1,16 +1,15 @@
 'use client';
 
 import { useQuery, type UseQueryResult } from '@tanstack/react-query';
+import type { ProjectDetail } from '@lumicore/shared-types';
 
 import { apiClient } from '@/lib/api-client';
-import type { ProjectSummary } from '@/types/contracts';
+import { queryKeys } from '@/lib/query/query-keys';
 
-export function useProject(id: number): UseQueryResult<ProjectSummary> {
+export function useProject(id: number): UseQueryResult<ProjectDetail> {
   return useQuery({
-    queryKey: ['projects', id],
-    // GET /projects/:id - backend ProjectsModule not yet implemented.
-    // Switch enabled: false -> true and wire params when backend is ready.
-    queryFn: () => apiClient.get<ProjectSummary>(`/projects/${id}`),
-    enabled: false,
+    queryKey: queryKeys.projects.detail(id),
+    queryFn: () => apiClient.get<ProjectDetail>(`/projects/${id}`),
+    enabled: id > 0,
   });
 }

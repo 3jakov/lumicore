@@ -10,6 +10,7 @@ import { queryKeys } from '@/lib/query/query-keys';
 
 import { ProjectDetailSection } from './project-detail-section';
 import { ProjectStatusBadge } from './project-status-badge';
+import { useAuthStore } from '@/store/auth.store';
 
 type ProjectDetailShellProps = Readonly<{
   id: number;
@@ -100,6 +101,8 @@ function DetailErrorPanel(): JSX.Element {
 export function ProjectDetailShell({ id }: ProjectDetailShellProps): JSX.Element {
   const queryClient = useQueryClient();
   const { data, error, isError, isFetching, isLoading } = useProject(id);
+  const currentUser = useAuthStore((state) => state.currentUser);
+  const isAdmin = currentUser?.roles.includes('Administraator') ?? false;
 
   // Optimistic cache read: show list-level summary while the detail fetch is in-flight
   const listData = queryClient.getQueryData<PaginatedResponse<ProjectSummary>>(queryKeys.projects.list());
@@ -143,6 +146,14 @@ export function ProjectDetailShell({ id }: ProjectDetailShellProps): JSX.Element
                 {headerProject?.name ?? `Project #${id}`}
               </h1>
             </div>
+            {isAdmin && (
+              <Link
+                href={`/projects/${id}/edit`}
+                className="inline-flex items-center gap-2 text-sm font-semibold text-accent-700 transition hover:text-accent-800"
+              >
+                Edit project
+              </Link>
+            )}
           </div>
           <p className="text-sm leading-6 text-text-secondary md:max-w-sm md:text-right">
             Overview, tasks, documents, and team tabs will be activated as each module is
