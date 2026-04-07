@@ -1,4 +1,6 @@
-import { PlaceholderRoutePage } from '@/components/layout/placeholder-route-page';
+import { notFound } from 'next/navigation';
+
+import { ProjectDetailShell } from '@/components/projects/project-detail-shell';
 
 type ProjectDetailPageProps = Readonly<{
   params: Promise<{
@@ -10,12 +12,11 @@ export default async function ProjectDetailPage({
   params,
 }: ProjectDetailPageProps): Promise<JSX.Element> {
   const { id } = await params;
+  const projectId = Number(id);
 
-  return (
-    <PlaceholderRoutePage
-      eyebrow="Projects"
-      title={`Project ${id}`}
-      description="Reserved for task, calendar, documents, gallery, and budget placeholder tabs."
-    />
-  );
+  if (!Number.isInteger(projectId) || projectId <= 0) {
+    notFound();
+  }
+
+  return <ProjectDetailShell id={projectId} />;
 }
