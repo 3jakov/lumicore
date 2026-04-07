@@ -1,11 +1,15 @@
-import { PlaceholderRoutePage } from '@/components/layout/placeholder-route-page';
+import { PageHeader } from '@/components/layout/page-header';
+import { ProjectsList } from '@/components/projects/projects-list';
 
 export default function ProjectsPage(): JSX.Element {
   return (
-    <PlaceholderRoutePage
-      eyebrow="Projects"
-      title="Project workspace scaffold"
-      description="Prepared for list, filters, and detail navigation aligned with the architecture docs."
-    />
+    <div className="space-y-6">
+      <PageHeader
+        eyebrow="Projects"
+        title="Projects"
+        description="All active and archived projects across field and production."
+      />
+      <ProjectsList />
+    </div>
   );
 }

@@ -11,6 +11,5 @@ export function useProjects(): UseQueryResult<PaginatedResponse<ProjectSummary>>
   return useQuery({
     queryKey: queryKeys.projects.list(),
     queryFn: () => apiClient.get<PaginatedResponse<ProjectSummary>>('/projects'),
-    enabled: false,
   });
 }
