@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { useQueryClient } from '@tanstack/react-query';
 
 import { useProject } from '@/hooks/use-project';
+import { useArchiveProject } from '@/hooks/use-archive-project';
 import { queryKeys } from '@/lib/query/query-keys';
 
 import { ProjectDetailSection } from './project-detail-section';
@@ -101,6 +102,7 @@ function DetailErrorPanel(): JSX.Element {
 export function ProjectDetailShell({ id }: ProjectDetailShellProps): JSX.Element {
   const queryClient = useQueryClient();
   const { data, error, isError, isFetching, isLoading } = useProject(id);
+  const { isLoading: isArchiving, error: archiveError, archiveProject } = useArchiveProject(id);
   const currentUser = useAuthStore((state) => state.currentUser);
   const isAdmin = currentUser?.roles.includes('Administraator') ?? false;
 
@@ -116,6 +118,16 @@ export function ProjectDetailShell({ id }: ProjectDetailShellProps): JSX.Element
 
   if (!headerProject && isError && error) {
     return <NotFoundState />;
+  }
+
+  async function handleArchive(): Promise<void> {
+    const confirmed = window.confirm(
+      'Archive this project? It will be removed from the active projects list.',
+    );
+
+    if (!confirmed) return;
+
+    await archiveProject();
   }
 
   return (
@@ -147,12 +159,22 @@ export function ProjectDetailShell({ id }: ProjectDetailShellProps): JSX.Element
               </h1>
             </div>
             {isAdmin && (
-              <Link
-                href={`/projects/${id}/edit`}
-                className="inline-flex items-center gap-2 text-sm font-semibold text-accent-700 transition hover:text-accent-800"
-              >
-                Edit project
-              </Link>
+              <div className="flex flex-wrap items-center gap-3">
+                <Link
+                  href={`/projects/${id}/edit`}
+                  className="inline-flex items-center gap-2 text-sm font-semibold text-accent-700 transition hover:text-accent-800"
+                >
+                  Edit project
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => void handleArchive()}
+                  disabled={isArchiving}
+                  className="inline-flex items-center gap-2 text-sm font-semibold text-red-600 transition hover:text-red-700 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {isArchiving ? 'Archiving...' : 'Archive project'}
+                </button>
+              </div>
             )}
           </div>
           <p className="text-sm leading-6 text-text-secondary md:max-w-sm md:text-right">
@@ -160,6 +182,11 @@ export function ProjectDetailShell({ id }: ProjectDetailShellProps): JSX.Element
             integrated.
           </p>
         </div>
+        {archiveError && (
+          <p role="alert" className="mt-4 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-600">
+            {archiveError}
+          </p>
+        )}
       </section>
 
       <div className="flex flex-wrap gap-2">
