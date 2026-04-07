@@ -5,9 +5,13 @@ import { useAuthStore } from '@/store/auth.store';
 
 type HttpMethod = 'DELETE' | 'GET' | 'PATCH' | 'POST' | 'PUT';
 
+/** Query string params accepted by apiClient methods. null/undefined values are omitted. */
+export type QueryParams = Record<string, string | number | boolean | null | undefined>;
+
 type RequestOptions = {
   body?: unknown;
   headers?: HeadersInit;
+  params?: QueryParams;
   signal?: AbortSignal;
 };
 
@@ -40,7 +44,7 @@ class ApiClient {
   ): Promise<T> {
     const token = useAuthStore.getState().accessToken;
 
-    const response = await fetch(this.buildUrl(path), {
+    const response = await fetch(this.buildUrl(path, options.params), {
       method,
       credentials: 'include',
       headers: {
@@ -73,10 +77,21 @@ class ApiClient {
     return (await response.json()) as T;
   }
 
-  private buildUrl(path: string): string {
+  private buildUrl(path: string, params?: QueryParams): string {
     const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+    const base = `${env.apiUrl}/api/v1${normalizedPath}`;
 
-    return `${env.apiUrl}/api/v1${normalizedPath}`;
+    if (!params) return base;
+
+    const searchParams = new URLSearchParams();
+    for (const [key, value] of Object.entries(params)) {
+      if (value !== null && value !== undefined) {
+        searchParams.set(key, String(value));
+      }
+    }
+
+    const qs = searchParams.toString();
+    return qs ? `${base}?${qs}` : base;
   }
 
   /**

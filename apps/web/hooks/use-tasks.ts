@@ -11,6 +11,5 @@ export function useTasks(): UseQueryResult<PaginatedResponse<TaskSummary>> {
   return useQuery({
     queryKey: queryKeys.tasks.list(),
     queryFn: () => apiClient.get<PaginatedResponse<TaskSummary>>('/tasks'),
-    enabled: false,
   });
 }

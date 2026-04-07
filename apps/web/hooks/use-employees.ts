@@ -11,6 +11,5 @@ export function useEmployees(): UseQueryResult<PaginatedResponse<EmployeeSummary
   return useQuery({
     queryKey: queryKeys.employees.list(),
     queryFn: () => apiClient.get<PaginatedResponse<EmployeeSummary>>('/employees'),
-    enabled: false,
   });
 }
