@@ -8,6 +8,7 @@ import { ProjectsModule } from './projects/projects.module';
 import { EmployeesModule } from './employees/employees.module';
 import { TasksModule } from './tasks/tasks.module';
 import { ToolsModule } from './tools/tools.module';
+import { TimeTrackingModule } from './time-tracking/time-tracking.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { ToolsModule } from './tools/tools.module';
     EmployeesModule,
     TasksModule,
     ToolsModule,
+    TimeTrackingModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -1,0 +1,520 @@
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import type {
+  TimeEntrySummary,
+  TimeEntryDetail,
+  TimesheetSummary,
+  TimesheetDay,
+  PauseSummary,
+} from '@lumicore/shared-types';
+import type { PaginatedResponse } from '@lumicore/shared-types';
+import { PrismaService } from '../database/prisma.service';
+import { StartTimeEntryDto } from './dto/start-time-entry.dto';
+import { ListTimeEntriesDto } from './dto/list-time-entries.dto';
+import { TimesheetQueryDto } from './dto/timesheet-query.dto';
+import type { Pause, TimeEntry } from '@prisma/client';
+
+// ─── Internal query result type ───────────────────────────────────────────────
+
+type TimeEntryWithPauses = TimeEntry & { pauses: Pause[] };
+
+@Injectable()
+export class TimeTrackingService {
+  constructor(private readonly prisma: PrismaService) {}
+
+  // ─── Create (start timer or manual entry) ─────────────────────────────────
+
+  /**
+   * POST /api/v1/time-entries
+   *
+   * Two modes:
+   *   1. Timer start (is_manual=false or omitted): creates an open entry (ended_at=null).
+   *   2. Manual entry (is_manual=true): both started_at and ended_at are required.
+   *
+   * BR-001: project_id null → no_project_reason required (≥10 chars).
+   * BR-002: is_manual=true → started_at < ended_at; zero-duration blocked.
+   * BR-003: duration is never stored and never accepted in the request.
+   */
+  async create(dto: StartTimeEntryDto, employeeId: number): Promise<TimeEntryDetail> {
+    // ── BR-001: validate project/reason requirement ────────────────────────
+    const hasProject = dto.project_id != null;
+    const hasReason =
+      dto.no_project_reason != null &&
+      dto.no_project_reason.trim().length >= 10;
+
+    if (!hasProject && !hasReason) {
+      throw new BadRequestException(
+        'Timer requires project+task or a reason (min 10 chars)',
+      );
+    }
+
+    // ── Validate references ────────────────────────────────────────────────
+    if (hasProject) {
+      await this.validateProjectId(dto.project_id!);
+    }
+    if (dto.task_id != null) {
+      await this.validateTaskId(dto.task_id, dto.project_id ?? null);
+    }
+
+    const isManual = dto.is_manual ?? false;
+
+    if (isManual) {
+      // ── BR-002: manual entry requires both timestamps ────────────────────
+      if (!dto.started_at || !dto.ended_at) {
+        throw new BadRequestException(
+          'Manual entries require both started_at and ended_at',
+        );
+      }
+
+      const startedAt = new Date(dto.started_at);
+      const endedAt = new Date(dto.ended_at);
+
+      // BR-002: zero/negative duration blocked
+      if (startedAt >= endedAt) {
+        throw new BadRequestException('Entry duration cannot be zero');
+      }
+
+      const entry = await this.prisma.timeEntry.create({
+        data: {
+          employee_id: employeeId,
+          project_id: dto.project_id ?? null,
+          task_id: dto.task_id ?? null,
+          no_project_reason: hasProject ? null : (dto.no_project_reason ?? null),
+          started_at: startedAt,
+          ended_at: endedAt,
+          is_manual: true,
+          needs_review: false,
+          is_confirmed: false,
+        },
+        include: { pauses: true },
+      });
+
+      return this.toDetail(entry);
+    }
+
+    // ── Timer start ────────────────────────────────────────────────────────
+    const startedAt = dto.started_at ? new Date(dto.started_at) : new Date();
+
+    const entry = await this.prisma.timeEntry.create({
+      data: {
+        employee_id: employeeId,
+        project_id: dto.project_id ?? null,
+        task_id: dto.task_id ?? null,
+        no_project_reason: hasProject ? null : (dto.no_project_reason ?? null),
+        started_at: startedAt,
+        ended_at: null,
+        is_manual: false,
+        needs_review: false,
+        is_confirmed: false,
+      },
+      include: { pauses: true },
+    });
+
+    return this.toDetail(entry);
+  }
+
+  // ─── Pause ─────────────────────────────────────────────────────────────────
+
+  /**
+   * POST /api/v1/time-entries/:id/pause
+   *
+   * Requirements:
+   * - Entry must exist and belong to the authenticated employee.
+   * - Entry must be active (ended_at is null).
+   * - Entry must not already be paused (no open Pause row).
+   *
+   * Creates an open Pause (pause_end=null).
+   */
+  async pause(id: number, employeeId: number): Promise<TimeEntryDetail> {
+    const entry = await this.findEntryOrThrow(id);
+    this.assertOwnership(entry, employeeId);
+    this.assertActive(entry, 'pause');
+
+    const openPause = entry.pauses.find((p) => p.pause_end === null);
+    if (openPause) {
+      throw new BadRequestException('Time entry is already paused');
+    }
+
+    const updated = await this.prisma.$transaction(async (tx) => {
+      await tx.pause.create({
+        data: {
+          time_entry_id: id,
+          pause_start: new Date(),
+          pause_end: null,
+        },
+      });
+
+      return tx.timeEntry.findUniqueOrThrow({
+        where: { id },
+        include: { pauses: true },
+      });
+    });
+
+    return this.toDetail(updated);
+  }
+
+  // ─── Resume ────────────────────────────────────────────────────────────────
+
+  /**
+   * POST /api/v1/time-entries/:id/resume
+   *
+   * Requirements:
+   * - Entry must exist and belong to the authenticated employee.
+   * - Entry must be active (ended_at is null).
+   * - Entry must currently be paused (an open Pause row exists).
+   *
+   * Closes the open Pause by setting pause_end = now().
+   */
+  async resume(id: number, employeeId: number): Promise<TimeEntryDetail> {
+    const entry = await this.findEntryOrThrow(id);
+    this.assertOwnership(entry, employeeId);
+    this.assertActive(entry, 'resume');
+
+    const openPause = entry.pauses.find((p) => p.pause_end === null);
+    if (!openPause) {
+      throw new BadRequestException('Time entry is not currently paused');
+    }
+
+    const updated = await this.prisma.$transaction(async (tx) => {
+      await tx.pause.update({
+        where: { id: openPause.id },
+        data: { pause_end: new Date() },
+      });
+
+      return tx.timeEntry.findUniqueOrThrow({
+        where: { id },
+        include: { pauses: true },
+      });
+    });
+
+    return this.toDetail(updated);
+  }
+
+  // ─── Stop ──────────────────────────────────────────────────────────────────
+
+  /**
+   * POST /api/v1/time-entries/:id/stop
+   *
+   * Requirements:
+   * - Entry must exist and belong to the authenticated employee.
+   * - Entry must be active (ended_at is null).
+   *
+   * If currently paused, closes the open Pause first, then sets ended_at.
+   * All writes are atomic (single transaction).
+   */
+  async stop(id: number, employeeId: number): Promise<TimeEntryDetail> {
+    const entry = await this.findEntryOrThrow(id);
+    this.assertOwnership(entry, employeeId);
+    this.assertActive(entry, 'stop');
+
+    const now = new Date();
+    const openPause = entry.pauses.find((p) => p.pause_end === null);
+
+    const updated = await this.prisma.$transaction(async (tx) => {
+      // Close any open pause first
+      if (openPause) {
+        await tx.pause.update({
+          where: { id: openPause.id },
+          data: { pause_end: now },
+        });
+      }
+
+      // Set ended_at on the entry
+      await tx.timeEntry.update({
+        where: { id },
+        data: { ended_at: now },
+      });
+
+      return tx.timeEntry.findUniqueOrThrow({
+        where: { id },
+        include: { pauses: true },
+      });
+    });
+
+    // BR-002 guard: validate final duration is positive
+    // (edge case: entry stopped immediately after start with no meaningful time)
+    const durationSeconds = this.computeDurationSeconds(updated);
+    if (durationSeconds !== null && durationSeconds <= 0) {
+      // Roll back by removing ended_at would require a nested tx; instead throw.
+      // In practice this should not happen unless a race condition.
+      throw new BadRequestException('Entry duration cannot be zero');
+    }
+
+    return this.toDetail(updated);
+  }
+
+  // ─── List (self) ───────────────────────────────────────────────────────────
+
+  /**
+   * GET /api/v1/time-entries
+   * Returns the authenticated employee's own time entries.
+   * Filterable by date range and project_id.
+   */
+  async findAll(
+    dto: ListTimeEntriesDto,
+    employeeId: number,
+  ): Promise<PaginatedResponse<TimeEntrySummary>> {
+    const page = dto.page ?? 1;
+    const limit = dto.limit ?? 20;
+    const skip = (page - 1) * limit;
+
+    const where = this.buildListWhere(dto, employeeId);
+
+    const [entries, total] = await this.prisma.$transaction([
+      this.prisma.timeEntry.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: { started_at: 'desc' },
+        include: { pauses: true },
+      }),
+      this.prisma.timeEntry.count({ where }),
+    ]);
+
+    return {
+      data: entries.map((e) => this.toSummary(e)),
+      meta: { total, page, limit },
+    };
+  }
+
+  // ─── Timesheet (self) ──────────────────────────────────────────────────────
+
+  /**
+   * GET /api/v1/time-entries/timesheet
+   * Returns the authenticated employee's self timesheet summary for a date range.
+   * Duration is computed from timestamps + pauses (BR-003).
+   * Days are grouped in Europe/Tallinn timezone.
+   */
+  async getTimesheet(
+    dto: TimesheetQueryDto,
+    employeeId: number,
+  ): Promise<TimesheetSummary> {
+    const dateFrom = new Date(dto.date_from + 'T00:00:00+03:00'); // start of day Tallinn
+    const dateTo = new Date(dto.date_to + 'T23:59:59+03:00');   // end of day Tallinn
+
+    const entries = await this.prisma.timeEntry.findMany({
+      where: {
+        employee_id: employeeId,
+        started_at: {
+          gte: dateFrom,
+          lte: dateTo,
+        },
+      },
+      include: { pauses: true },
+      orderBy: { started_at: 'asc' },
+    });
+
+    // Build a map: YYYY-MM-DD (Tallinn local date) → tracked seconds + count
+    const dayMap = new Map<string, { tracked_seconds: number; entry_count: number }>();
+
+    // Ensure every date in the range is represented even with 0 entries
+    const currentDate = new Date(dto.date_from);
+    const endDate = new Date(dto.date_to);
+    while (currentDate <= endDate) {
+      const key = currentDate.toISOString().slice(0, 10); // approximate — will be overridden
+      // Build proper YYYY-MM-DD in Tallinn
+      const tallinKey = this.toTallinDate(currentDate);
+      if (!dayMap.has(tallinKey)) {
+        dayMap.set(tallinKey, { tracked_seconds: 0, entry_count: 0 });
+      }
+      currentDate.setDate(currentDate.getDate() + 1);
+    }
+
+    let totalTracked = 0;
+
+    for (const entry of entries) {
+      const duration = this.computeDurationSeconds(entry);
+      if (duration === null) continue; // running timer — exclude from summary
+
+      const dateKey = this.toTallinDate(entry.started_at);
+      const existing = dayMap.get(dateKey) ?? { tracked_seconds: 0, entry_count: 0 };
+      existing.tracked_seconds += duration;
+      existing.entry_count += 1;
+      dayMap.set(dateKey, existing);
+      totalTracked += duration;
+    }
+
+    // Sort days chronologically
+    const days: TimesheetDay[] = Array.from(dayMap.entries())
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([date, val]) => ({
+        date,
+        tracked_seconds: val.tracked_seconds,
+        entry_count: val.entry_count,
+      }));
+
+    return {
+      employee_id: employeeId,
+      date_from: dto.date_from,
+      date_to: dto.date_to,
+      total_tracked_seconds: totalTracked,
+      days,
+    };
+  }
+
+  // ─── Private helpers ──────────────────────────────────────────────────────
+
+  private async findEntryOrThrow(id: number): Promise<TimeEntryWithPauses> {
+    const entry = await this.prisma.timeEntry.findUnique({
+      where: { id },
+      include: { pauses: true },
+    });
+    if (!entry) {
+      throw new NotFoundException(`Time entry #${id} not found`);
+    }
+    return entry;
+  }
+
+  private assertOwnership(entry: TimeEntry, employeeId: number): void {
+    if (entry.employee_id !== employeeId) {
+      throw new ForbiddenException('You do not have access to this time entry');
+    }
+  }
+
+  private assertActive(entry: TimeEntry, action: string): void {
+    if (entry.ended_at !== null) {
+      throw new BadRequestException(
+        `Cannot ${action} a time entry that has already been stopped`,
+      );
+    }
+  }
+
+  private async validateProjectId(projectId: number): Promise<void> {
+    const project = await this.prisma.project.findUnique({
+      where: { id: projectId },
+      select: { id: true, archived_at: true },
+    });
+    if (!project || project.archived_at) {
+      throw new BadRequestException(
+        `Project #${projectId} does not exist or is archived`,
+      );
+    }
+  }
+
+  private async validateTaskId(taskId: number, projectId: number | null): Promise<void> {
+    const task = await this.prisma.task.findUnique({
+      where: { id: taskId },
+      select: { id: true, archived_at: true, project_id: true },
+    });
+    if (!task || task.archived_at) {
+      throw new BadRequestException(
+        `Task #${taskId} does not exist or is archived`,
+      );
+    }
+    // If a project is provided, ensure the task belongs to that project
+    if (projectId != null && task.project_id !== null && task.project_id !== projectId) {
+      throw new BadRequestException(
+        `Task #${taskId} does not belong to project #${projectId}`,
+      );
+    }
+  }
+
+  private buildListWhere(dto: ListTimeEntriesDto, employeeId: number) {
+    const where: Record<string, unknown> = { employee_id: employeeId };
+
+    if (dto.date_from || dto.date_to) {
+      const startedAt: Record<string, Date> = {};
+      if (dto.date_from) {
+        startedAt.gte = new Date(dto.date_from + 'T00:00:00+03:00');
+      }
+      if (dto.date_to) {
+        startedAt.lte = new Date(dto.date_to + 'T23:59:59+03:00');
+      }
+      where.started_at = startedAt;
+    }
+
+    if (dto.project_id != null) {
+      where.project_id = dto.project_id;
+    }
+
+    return where;
+  }
+
+  /**
+   * Compute net duration in seconds.
+   * Returns null if the entry has no ended_at (timer still running).
+   * BR-003: duration derived from timestamps and pauses, never persisted.
+   */
+  private computeDurationSeconds(entry: TimeEntryWithPauses): number | null {
+    if (!entry.ended_at) return null;
+
+    const totalSeconds =
+      (entry.ended_at.getTime() - entry.started_at.getTime()) / 1000;
+
+    const pauseSeconds = this.computePauseSeconds(entry.pauses);
+
+    return Math.max(0, Math.round(totalSeconds - pauseSeconds));
+  }
+
+  /**
+   * Compute total pause duration in seconds.
+   * Open pauses (pause_end=null) are counted up to now().
+   */
+  private computePauseSeconds(pauses: Pause[]): number {
+    const now = Date.now();
+    return pauses.reduce((acc, p) => {
+      const end = p.pause_end ? p.pause_end.getTime() : now;
+      return acc + Math.max(0, (end - p.pause_start.getTime()) / 1000);
+    }, 0);
+  }
+
+  /**
+   * Convert a UTC Date to YYYY-MM-DD in Europe/Tallinn timezone.
+   * Offset: UTC+2 (winter) / UTC+3 (summer). We use a pragmatic ISO approach:
+   * parse the date in +03:00 as the "safe" Tallinn offset (covers all cases).
+   */
+  private toTallinDate(date: Date): string {
+    // Use Intl to get the correct local date
+    const parts = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'Europe/Tallinn',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).format(date);
+    // en-CA format is already YYYY-MM-DD
+    return parts;
+  }
+
+  // ─── Mappers ──────────────────────────────────────────────────────────────
+
+  private toSummary(entry: TimeEntryWithPauses): TimeEntrySummary {
+    const durationSeconds = this.computeDurationSeconds(entry);
+    const pauseDurationSeconds = Math.round(this.computePauseSeconds(entry.pauses));
+    const isPaused = entry.pauses.some((p) => p.pause_end === null);
+
+    return {
+      id: entry.id,
+      employee_id: entry.employee_id,
+      project_id: entry.project_id,
+      task_id: entry.task_id,
+      no_project_reason: entry.no_project_reason,
+      started_at: entry.started_at.toISOString(),
+      ended_at: entry.ended_at ? entry.ended_at.toISOString() : null,
+      is_manual: entry.is_manual,
+      needs_review: entry.needs_review,
+      is_confirmed: entry.is_confirmed,
+      duration_seconds: durationSeconds,
+      pause_duration_seconds: pauseDurationSeconds,
+      is_paused: isPaused,
+      created_at: entry.created_at.toISOString(),
+    };
+  }
+
+  private toDetail(entry: TimeEntryWithPauses): TimeEntryDetail {
+    const pauses: PauseSummary[] = entry.pauses.map((p) => ({
+      id: p.id,
+      pause_start: p.pause_start.toISOString(),
+      pause_end: p.pause_end ? p.pause_end.toISOString() : null,
+    }));
+
+    return {
+      ...this.toSummary(entry),
+      pauses,
+      updated_at: entry.updated_at.toISOString(),
+    };
+  }
+}
