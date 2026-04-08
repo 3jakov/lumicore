@@ -102,10 +102,18 @@ export function TaskDetailShell({ id }: TaskDetailShellProps): JSX.Element {
             </div>
             <h1 className="text-3xl font-semibold text-text-primary">{data.name}</h1>
           </div>
-          <p className="text-sm leading-6 text-text-secondary md:max-w-sm md:text-right">
-            Task comments, tools, and time links can layer onto this once those modules are fully
-            integrated.
-          </p>
+          <div className="flex flex-col gap-3 md:items-end">
+            <Link
+              href={`/tasks/${id}/edit`}
+              className="inline-flex items-center justify-center rounded-2xl border border-border-subtle bg-surface-1 px-4 py-2 text-sm font-semibold text-text-secondary transition hover:border-border-strong hover:text-text-primary"
+            >
+              Edit task
+            </Link>
+            <p className="text-sm leading-6 text-text-secondary md:max-w-sm md:text-right">
+              Task comments, tools, and time links can layer onto this once those modules are fully
+              integrated.
+            </p>
+          </div>
         </div>
       </section>
 
