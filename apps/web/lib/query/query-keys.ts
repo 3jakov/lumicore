@@ -20,7 +20,10 @@ export const queryKeys = {
   },
   tasks: {
     all: ['tasks'] as const,
+    lists: ['tasks', 'list'] as const,
     list: (filters?: ListFilters) => ['tasks', 'list', filters] as const,
+    detail: (id: number) => ['tasks', 'detail', id] as const,
+    templates: ['tasks', 'templates'] as const,
   },
   timeEntries: {
     all: ['time-entries'] as const,

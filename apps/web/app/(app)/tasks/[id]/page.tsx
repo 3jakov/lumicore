@@ -1,4 +1,6 @@
-import { PlaceholderRoutePage } from '@/components/layout/placeholder-route-page';
+import { notFound } from 'next/navigation';
+
+import { TaskDetailShell } from '@/components/tasks/task-detail-shell';
 
 type TaskDetailPageProps = Readonly<{
   params: Promise<{
@@ -10,12 +12,11 @@ export default async function TaskDetailPage({
   params,
 }: TaskDetailPageProps): Promise<JSX.Element> {
   const { id } = await params;
+  const taskId = Number(id);
 
-  return (
-    <PlaceholderRoutePage
-      eyebrow="Tasks"
-      title={`Task ${id}`}
-      description="Reserved for task details, assignees, linked tools, and activity context."
-    />
-  );
+  if (!Number.isInteger(taskId) || taskId <= 0) {
+    notFound();
+  }
+
+  return <TaskDetailShell id={taskId} />;
 }
