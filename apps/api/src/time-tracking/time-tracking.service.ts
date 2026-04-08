@@ -223,6 +223,20 @@ export class TimeTrackingService {
         });
       }
 
+      // BR-002 guard: validate duration BEFORE writing ended_at so the
+      // transaction rolls back cleanly if the guard trips.
+      const simulatedPauses = entry.pauses.map((p) =>
+        p.id === openPause?.id ? { ...p, pause_end: now } : p,
+      );
+      const simulatedDuration = this.computeDurationSeconds({
+        ...entry,
+        ended_at: now,
+        pauses: simulatedPauses,
+      });
+      if (simulatedDuration !== null && simulatedDuration <= 0) {
+        throw new BadRequestException('Entry duration cannot be zero');
+      }
+
       // Set ended_at on the entry
       await tx.timeEntry.update({
         where: { id },
@@ -234,15 +248,6 @@ export class TimeTrackingService {
         include: { pauses: true },
       });
     });
-
-    // BR-002 guard: validate final duration is positive
-    // (edge case: entry stopped immediately after start with no meaningful time)
-    const durationSeconds = this.computeDurationSeconds(updated);
-    if (durationSeconds !== null && durationSeconds <= 0) {
-      // Roll back by removing ended_at would require a nested tx; instead throw.
-      // In practice this should not happen unless a race condition.
-      throw new BadRequestException('Entry duration cannot be zero');
-    }
 
     return this.toDetail(updated);
   }
@@ -293,8 +298,8 @@ export class TimeTrackingService {
     dto: TimesheetQueryDto,
     employeeId: number,
   ): Promise<TimesheetSummary> {
-    const dateFrom = new Date(dto.date_from + 'T00:00:00+03:00'); // start of day Tallinn
-    const dateTo = new Date(dto.date_to + 'T23:59:59+03:00');   // end of day Tallinn
+    const dateFrom = this.tallinDayBoundary(dto.date_from, false); // start of day Tallinn
+    const dateTo = this.tallinDayBoundary(dto.date_to, true);     // end of day Tallinn
 
     const entries = await this.prisma.timeEntry.findMany({
       where: {
@@ -419,10 +424,10 @@ export class TimeTrackingService {
     if (dto.date_from || dto.date_to) {
       const startedAt: Record<string, Date> = {};
       if (dto.date_from) {
-        startedAt.gte = new Date(dto.date_from + 'T00:00:00+03:00');
+        startedAt.gte = this.tallinDayBoundary(dto.date_from, false);
       }
       if (dto.date_to) {
-        startedAt.lte = new Date(dto.date_to + 'T23:59:59+03:00');
+        startedAt.lte = this.tallinDayBoundary(dto.date_to, true);
       }
       where.started_at = startedAt;
     }
@@ -464,19 +469,49 @@ export class TimeTrackingService {
 
   /**
    * Convert a UTC Date to YYYY-MM-DD in Europe/Tallinn timezone.
-   * Offset: UTC+2 (winter) / UTC+3 (summer). We use a pragmatic ISO approach:
-   * parse the date in +03:00 as the "safe" Tallinn offset (covers all cases).
+   * Uses Intl to correctly handle DST (UTC+2 winter / UTC+3 summer).
    */
   private toTallinDate(date: Date): string {
-    // Use Intl to get the correct local date
-    const parts = new Intl.DateTimeFormat('en-CA', {
+    return new Intl.DateTimeFormat('en-CA', {
       timeZone: 'Europe/Tallinn',
       year: 'numeric',
       month: '2-digit',
       day: '2-digit',
     }).format(date);
-    // en-CA format is already YYYY-MM-DD
-    return parts;
+  }
+
+  /**
+   * Convert a YYYY-MM-DD date string to a UTC Date representing either the
+   * start (00:00:00) or end (23:59:59) of that calendar day in Europe/Tallinn.
+   *
+   * Uses the offset-correction technique: build a naive UTC instant for the
+   * desired local time, then measure how far Tallinn's local clock is from UTC
+   * at that moment and shift accordingly. This handles DST correctly without
+   * requiring date-fns-tz or any additional dependencies.
+   */
+  private tallinDayBoundary(dateStr: string, endOfDay: boolean): Date {
+    const timeStr = endOfDay ? 'T23:59:59' : 'T00:00:00';
+    // Step 1: treat the desired local time as if it were UTC (naive estimate)
+    const estimate = new Date(dateStr + timeStr + 'Z');
+
+    // Step 2: find out what Tallinn local time corresponds to this UTC instant
+    const tallinLocalStr = new Intl.DateTimeFormat('sv-SE', {
+      timeZone: 'Europe/Tallinn',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+    }).format(estimate); // sv-SE → "YYYY-MM-DD HH:mm:ss"
+
+    // Step 3: parse that Tallinn local string back as UTC to get the offset gap
+    const tallinAsUtc = new Date(tallinLocalStr.replace(' ', 'T') + 'Z');
+
+    // Step 4: the true UTC instant for the desired local time is:
+    //   estimate - (tallinAsUtc - estimate)  =  2 * estimate - tallinAsUtc
+    const offsetMs = tallinAsUtc.getTime() - estimate.getTime();
+    return new Date(estimate.getTime() - offsetMs);
   }
 
   // ─── Mappers ──────────────────────────────────────────────────────────────
