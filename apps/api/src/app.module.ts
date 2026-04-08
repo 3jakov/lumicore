@@ -7,6 +7,7 @@ import { AuthModule } from './auth/auth.module';
 import { ProjectsModule } from './projects/projects.module';
 import { EmployeesModule } from './employees/employees.module';
 import { TasksModule } from './tasks/tasks.module';
+import { ToolsModule } from './tools/tools.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { TasksModule } from './tasks/tasks.module';
     ProjectsModule,
     EmployeesModule,
     TasksModule,
+    ToolsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

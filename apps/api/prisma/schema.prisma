@@ -324,10 +324,13 @@ model Tool {
   model                       String?
   created_at                  DateTime   @default(now()) @db.Timestamptz
   updated_at                  DateTime   @updatedAt @db.Timestamptz
+  archived_at                 DateTime?  @db.Timestamptz
 
   current_project  Project?  @relation(fields: [current_location_project_id], references: [id])
   responsible      Employee? @relation(fields: [responsible_employee_id], references: [id])
   task_assignments TaskTool[]
+
+  @@index([archived_at])
 }
 
 model TaskTool {
