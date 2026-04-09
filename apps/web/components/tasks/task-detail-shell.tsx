@@ -3,7 +3,9 @@
 import { ChevronLeft } from 'lucide-react';
 import Link from 'next/link';
 
+import { useArchiveTask } from '@/hooks/use-archive-task';
 import { useTask } from '@/hooks/use-task';
+import { useAuthStore } from '@/store/auth.store';
 
 import { TaskPriorityBadge } from './task-priority-badge';
 import { TaskStatusBadge } from './task-status-badge';
@@ -79,9 +81,22 @@ function formatDateTime(value: string | null): string | null {
 
 export function TaskDetailShell({ id }: TaskDetailShellProps): JSX.Element {
   const { data, isLoading, isError } = useTask(id);
+  const { isLoading: isArchiving, error: archiveError, archiveTask } = useArchiveTask(id);
+  const currentUser = useAuthStore((state) => state.currentUser);
+  const isAdmin = currentUser?.roles.includes('Administraator') ?? false;
 
   if (isLoading) return <LoadingState />;
   if (isError || !data) return <ErrorState />;
+
+  async function handleArchive(): Promise<void> {
+    const confirmed = window.confirm(
+      'Archive this task? It will be removed from the active tasks list.',
+    );
+
+    if (!confirmed) return;
+
+    await archiveTask();
+  }
 
   return (
     <div className="space-y-6">
@@ -103,18 +118,35 @@ export function TaskDetailShell({ id }: TaskDetailShellProps): JSX.Element {
             <h1 className="text-3xl font-semibold text-text-primary">{data.name}</h1>
           </div>
           <div className="flex flex-col gap-3 md:items-end">
-            <Link
-              href={`/tasks/${id}/edit`}
-              className="inline-flex items-center justify-center rounded-2xl border border-border-subtle bg-surface-1 px-4 py-2 text-sm font-semibold text-text-secondary transition hover:border-border-strong hover:text-text-primary"
-            >
-              Edit task
-            </Link>
+            {isAdmin && (
+              <div className="flex flex-wrap items-center gap-3 md:justify-end">
+                <Link
+                  href={`/tasks/${id}/edit`}
+                  className="inline-flex items-center justify-center rounded-2xl border border-border-subtle bg-surface-1 px-4 py-2 text-sm font-semibold text-text-secondary transition hover:border-border-strong hover:text-text-primary"
+                >
+                  Edit task
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => void handleArchive()}
+                  disabled={isArchiving}
+                  className="inline-flex items-center gap-2 text-sm font-semibold text-red-600 transition hover:text-red-700 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {isArchiving ? 'Archiving...' : 'Archive task'}
+                </button>
+              </div>
+            )}
             <p className="text-sm leading-6 text-text-secondary md:max-w-sm md:text-right">
               Task comments, tools, and time links can layer onto this once those modules are fully
               integrated.
             </p>
           </div>
         </div>
+        {archiveError && (
+          <p role="alert" className="mt-4 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-600">
+            {archiveError}
+          </p>
+        )}
       </section>
 
       <section className="panel space-y-6 p-6 md:p-8">
