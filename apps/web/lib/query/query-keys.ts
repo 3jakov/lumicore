@@ -27,7 +27,11 @@ export const queryKeys = {
   },
   timeEntries: {
     all: ['time-entries'] as const,
+    lists: ['time-entries', 'list'] as const,
     list: (filters?: ListFilters) => ['time-entries', 'list', filters] as const,
+    detail: (id: number) => ['time-entries', 'detail', id] as const,
+    timesheets: ['time-entries', 'timesheet'] as const,
+    timesheet: (filters?: ListFilters) => ['time-entries', 'timesheet', filters] as const,
   },
   employees: {
     all: ['employees'] as const,

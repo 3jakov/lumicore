@@ -1,11 +1,15 @@
-import { PlaceholderRoutePage } from '@/components/layout/placeholder-route-page';
+import { PageHeader } from '@/components/layout/page-header';
+import { TimesheetView } from '@/components/time/timesheet-view';
 
 export default function PersonalTimesheetPage(): JSX.Element {
   return (
-    <PlaceholderRoutePage
-      eyebrow="Time Tracking"
-      title="Personal timesheet scaffold"
-      description="Reserved for the employee-focused timesheet view and export entry point."
-    />
+    <div className="space-y-6">
+      <PageHeader
+        eyebrow="Time Tracking"
+        title="My timesheet"
+        description="Review your tracked time by day for the selected range. Phase 1 stays self-service and HTTP-driven."
+      />
+      <TimesheetView />
+    </div>
   );
 }

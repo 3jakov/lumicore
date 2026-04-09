@@ -1,16 +1,18 @@
 'use client';
 
-import type { PaginatedResponse } from '@lumicore/shared-types';
-import { useQuery, type UseQueryResult } from '@tanstack/react-query';
+import type { PaginatedResponse, TimeEntrySummary } from '@lumicore/shared-types';
+import { keepPreviousData, useQuery, type UseQueryResult } from '@tanstack/react-query';
 
+import type { QueryParams } from '@/lib/api-client';
 import { apiClient } from '@/lib/api-client';
 import { queryKeys } from '@/lib/query/query-keys';
-import type { TimeEntrySummary } from '@/types/contracts';
 
-export function useTimeEntries(): UseQueryResult<PaginatedResponse<TimeEntrySummary>> {
+export function useTimeEntries(
+  params?: QueryParams,
+): UseQueryResult<PaginatedResponse<TimeEntrySummary>> {
   return useQuery({
-    queryKey: queryKeys.timeEntries.list(),
-    queryFn: () => apiClient.get<PaginatedResponse<TimeEntrySummary>>('/time-entries'),
-    enabled: false,
+    queryKey: queryKeys.timeEntries.list(params),
+    queryFn: () => apiClient.get<PaginatedResponse<TimeEntrySummary>>('/time-entries', { params }),
+    placeholderData: keepPreviousData,
   });
 }
