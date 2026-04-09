@@ -123,6 +123,21 @@ export class SettingsService {
   }
 
   async createTag(dto: CreateTagDto): Promise<TagSummary> {
+    // If an archived tag with the same [name, entity_type] exists, restore it
+    // instead of inserting a new row. Without this, the DB unique constraint
+    // would permanently block recreation of any soft-deleted tag.
+    const archived = await this.prisma.tag.findFirst({
+      where: { name: dto.name, entity_type: dto.entity_type, archived_at: { not: null } },
+    });
+
+    if (archived) {
+      const restored = await this.prisma.tag.update({
+        where: { id: archived.id },
+        data: { archived_at: null, color: dto.color ?? archived.color },
+      });
+      return this.toTagSummary(restored);
+    }
+
     try {
       const tag = await this.prisma.tag.create({
         data: {
