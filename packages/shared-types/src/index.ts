@@ -9,3 +9,4 @@ export * from './photo.types';
 export * from './tool.types';
 export * from './doc-acknowledgement.types';
 export * from './api-responses.types';
+export * from './settings.types';

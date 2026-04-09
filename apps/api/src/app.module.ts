@@ -9,6 +9,7 @@ import { EmployeesModule } from './employees/employees.module';
 import { TasksModule } from './tasks/tasks.module';
 import { ToolsModule } from './tools/tools.module';
 import { TimeTrackingModule } from './time-tracking/time-tracking.module';
+import { SettingsModule } from './settings/settings.module';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { TimeTrackingModule } from './time-tracking/time-tracking.module';
     TasksModule,
     ToolsModule,
     TimeTrackingModule,
+    SettingsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
