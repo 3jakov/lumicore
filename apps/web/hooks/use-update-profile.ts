@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 
-import type { Employee, UpdateOwnProfileDto } from '@lumicore/shared-types';
+import type { CurrentUser, UpdateOwnProfileDto } from '@lumicore/shared-types';
 
 import { apiClient } from '@/lib/api-client';
 import { useAuthStore } from '@/store/auth.store';
@@ -49,7 +49,7 @@ export function useUpdateProfile() {
     setState({ isLoading: true, isSuccess: false, error: null });
 
     try {
-      const updated = await apiClient.patch<Employee>('/employees/me', { body: dto });
+      const updated = await apiClient.patch<CurrentUser>('/employees/me', { body: dto });
 
       // Merge the backend response into the live session — single source of truth
       const { accessToken, currentUser } = useAuthStore.getState();
