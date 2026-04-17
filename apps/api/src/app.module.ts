@@ -11,6 +11,8 @@ import { ToolsModule } from './tools/tools.module';
 import { TimeTrackingModule } from './time-tracking/time-tracking.module';
 import { SettingsModule } from './settings/settings.module';
 import { DocAcknowledgementModule } from './doc-acknowledgement/doc-acknowledgement.module';
+import { PhotosModule } from './photos/photos.module';
+import { DocumentsModule } from './documents/documents.module';
 
 @Module({
   imports: [
@@ -26,6 +28,8 @@ import { DocAcknowledgementModule } from './doc-acknowledgement/doc-acknowledgem
     TimeTrackingModule,
     SettingsModule,
     DocAcknowledgementModule,
+    PhotosModule,
+    DocumentsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
