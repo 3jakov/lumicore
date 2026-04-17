@@ -41,3 +41,4 @@ Thumbs.db
 # Stray diff / patch files
 *.diff
 *.patch
+gemini-*-bundle.md

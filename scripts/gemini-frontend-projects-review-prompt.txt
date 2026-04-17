@@ -1,0 +1,72 @@
+Сделай focused code review frontend части Projects в репозитории LUMICO как senior frontend engineer.
+
+Repository:
+C:\git\lumicore
+
+Source of truth:
+- CLAUDE.md
+- docs/PRD.md
+- docs/TECH_STACK.md
+- docs/ARCHITECTURE.md
+- docs/IMPLEMENTATION_PLAN.md
+
+Scope review:
+- apps/web/
+
+Primary goal:
+Понять, качественно ли реализована текущая Projects page и не создаёт ли она плохих временных решений перед следующими project features.
+
+Проверь обязательно:
+1. Projects list page
+   - apps/web/app/(app)/projects/page.tsx
+   - loading/error/empty/loaded states
+   - navigation to /projects/[id]
+2. Projects hook/data integration
+   - hooks/use-projects.ts
+   - query behavior
+   - error handling
+3. UI structure
+   - components/projects/*
+   - status badge
+   - list/card rendering
+4. Contract usage
+   - где используются local temporary types
+   - есть ли риск, что они расползутся по codebase
+5. Docs alignment
+   - status badge colors
+   - M0/M1 boundary discipline
+   - не overbuilt ли page
+6. Readiness for next step
+   - projects detail
+   - projects create
+   - filters later
+
+What counts as a finding:
+- integration flaw
+- state/query issue
+- contract mismatch risk
+- bad temporary abstraction
+- docs violation
+- structure that will make next project steps messy
+
+What NOT to include:
+- complaints that create/edit/filtering are not built yet
+- visual preference feedback
+- backend review
+- generic placeholder criticism if current scope is acceptable
+
+Format:
+1. Findings first, ordered by severity
+2. For each finding:
+   - severity: P1 / P2 / P3
+   - file path
+   - lines if possible
+   - issue
+   - impact
+3. Then:
+   - “Frontend Projects page quality: acceptable / shaky / not acceptable”
+   - “Ready for next Projects step: yes / mostly / no”
+   - “Top 3 frontend follow-ups”
+
+Главный вопрос:
+Это хороший foundation для следующих Projects features, или сначала надо переделать integration layer/contract usage?

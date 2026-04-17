@@ -1,0 +1,89 @@
+Сделай focused code review frontend части репозитория LUMICO как senior frontend engineer.
+
+Repository:
+C:\git\lumicore
+
+Source of truth:
+- CLAUDE.md
+- docs/PRD.md
+- docs/TECH_STACK.md
+- docs/ARCHITECTURE.md
+- docs/IMPLEMENTATION_PLAN.md
+- docs/MOBILE_READINESS.md
+
+Scope review:
+- apps/web/
+
+Primary goal:
+Понять, насколько качественно сделан M0 frontend foundation и можно ли на этой базе безопасно начинать M1 auth + shell wiring.
+
+Проверь обязательно:
+1. App Router foundation
+   - route groups
+   - layout structure
+   - shell structure
+   - readiness for auth/app separation
+2. Frontend architecture
+   - lib/api-client.ts
+   - lib/socket.ts
+   - hooks/*
+   - store/*
+   - providers/*
+3. Integration readiness
+   - readiness to consume backend auth endpoints
+   - readiness to consume shared-types
+   - session hydration readiness
+   - route protection readiness
+4. Docs alignment
+   - Next.js 16
+   - React 19
+   - Tailwind 3
+   - Zustand 5
+   - TanStack Query v5
+   - no business logic in Next.js server actions
+   - mobile-readiness boundaries
+5. M0 boundary discipline
+   - foundation only
+   - no overbuilt product logic
+   - no invented flows outside docs
+6. M1 readiness
+   - can we now cleanly implement:
+     - login UI
+     - auth store wiring
+     - /auth/me bootstrap
+     - refresh flow
+     - route protection
+     - logout
+
+What counts as a finding:
+- architectural issue
+- state/session design flaw
+- integration risk
+- mismatch with backend/shared-types assumptions
+- docs violation
+- poor boundary that will make M1 implementation messy
+- placeholder/foundation implementation that is misleading or structurally wrong
+
+What NOT to include:
+- generic notes like “many pages are placeholders”
+- complaints that product features are not implemented yet if that is acceptable for M0
+- purely visual preference feedback
+- backend review
+
+Important review question:
+Is this frontend scaffold a good foundation for M1 auth integration, or are there structural problems that should be fixed first?
+
+Format:
+1. Findings first, ordered by severity
+2. For each finding:
+   - severity: P1 / P2 / P3
+   - file path
+   - lines if possible
+   - issue
+   - impact
+3. Then give:
+   - “Frontend M0 quality: acceptable / shaky / not acceptable”
+   - “Ready for M1 auth work: yes / mostly / no”
+   - “Top 3 frontend follow-ups before/while starting M1”
+
+Be pragmatic. Review the scaffold as scaffold, not as finished product UI.

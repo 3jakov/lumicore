@@ -1,0 +1,85 @@
+Сделай focused code review backend части репозитория LUMICO как senior backend engineer.
+
+Repository:
+C:\git\lumicore
+
+Source of truth:
+- CLAUDE.md
+- docs/PRD.md
+- docs/TECH_STACK.md
+- docs/ARCHITECTURE.md
+- docs/IMPLEMENTATION_PLAN.md
+- docs/MOBILE_READINESS.md
+
+Scope review:
+- apps/api/
+- apps/api/prisma/
+- packages/shared-types/
+
+Primary goal:
+Понять, действительно ли backend готов для handoff на frontend M1 auth integration.
+
+Проверь обязательно:
+1. Auth module readiness
+   - POST /api/v1/auth/login
+   - POST /api/v1/auth/otp/request
+   - POST /api/v1/auth/otp/verify
+   - POST /api/v1/auth/refresh
+   - POST /api/v1/auth/logout
+   - GET /api/v1/auth/me
+2. Shared contracts readiness
+   - packages/shared-types/src/auth.types.ts
+   - packages/shared-types/src/employee.types.ts
+   - packages/shared-types/src/enums.ts
+   - packages/shared-types/src/index.ts
+3. Prisma foundation
+   - schema.prisma
+   - migrations/
+   - seed.ts
+4. Session/auth correctness
+   - JWT payload
+   - refresh token rotation
+   - cookie behavior
+   - dual-mode refresh for native readiness
+   - current user bootstrap endpoint
+5. Backend/docs alignment
+   - CLAUDE.md
+   - MOBILE_READINESS.md
+   - M0/M1 requirements
+6. Reproducibility
+   - migration artifacts committed
+   - schema and seed consistency
+   - no hidden blocker for clean environment setup
+
+What counts as a finding:
+- bug
+- security/auth/session problem
+- API/shared-types mismatch
+- Prisma/data model issue
+- migration/reproducibility issue
+- contract problem that can break frontend integration
+- docs violation that matters for M1 or future mobile compatibility
+
+What NOT to include:
+- style nits
+- low-value refactor ideas
+- “could be improved” unless it creates concrete risk
+- frontend review
+
+Important review question:
+Can frontend start M1 auth integration without guessing contracts or working around backend gaps?
+
+Format:
+1. Findings first, ordered by severity
+2. For each finding:
+   - severity: P1 / P2 / P3
+   - file path
+   - lines if possible
+   - issue
+   - impact
+3. Then give:
+   - “Backend ready for frontend M1: yes / mostly / no”
+   - “Blocking issues”
+   - “Top 3 backend follow-ups before/while frontend starts”
+
+Be strict and pragmatic. If something can break handoff, call it out directly.

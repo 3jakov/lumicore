@@ -1,0 +1,78 @@
+Сделай focused code review backend части Projects в репозитории LUMICO как senior backend engineer.
+
+Repository:
+C:\git\lumicore
+
+Source of truth:
+- CLAUDE.md
+- docs/PRD.md
+- docs/TECH_STACK.md
+- docs/ARCHITECTURE.md
+- docs/IMPLEMENTATION_PLAN.md
+
+Scope review:
+- apps/api/
+- apps/api/prisma/
+- packages/shared-types/
+
+Primary goal:
+Понять, готов ли backend Projects для безопасной handoff-интеграции на фронтенде.
+
+Проверь обязательно:
+1. Наличие и готовность Projects endpoints
+   - GET /api/v1/projects
+   - GET /api/v1/projects/:id
+   - POST /api/v1/projects
+   - PATCH /api/v1/projects/:id
+   - DELETE /api/v1/projects/:id
+2. Реальный shape ответов
+   - list response `{ data, meta }`
+   - single-item response
+   - pagination/meta consistency
+3. Prisma/data model readiness
+   - Project model
+   - Project status
+   - client inline fields
+   - relations relevant for list/detail
+4. Shared-types readiness
+   - packages/shared-types/src/project.types.ts
+   - packages/shared-types/src/index.ts
+   - enums.ts
+5. Docs alignment
+   - ProjectStatus
+   - project list requirements
+   - prefix/display id expectations
+   - M0/M1/M2 boundaries
+6. Frontend handoff readiness
+   - может ли фронт безопасно строить list/detail/create без локальных временных контрактов
+
+What counts as a finding:
+- bug
+- contract mismatch
+- missing shared-types
+- response shape instability
+- schema/API mismatch
+- docs violation that affects frontend integration
+- hidden blocker for list/detail/create flows
+
+What NOT to include:
+- style comments
+- generic NestJS advice
+- frontend review
+- “можно улучшить” без concrete impact
+
+Format:
+1. Findings first, ordered by severity
+2. For each finding:
+   - severity: P1 / P2 / P3
+   - file path
+   - lines if possible
+   - issue
+   - impact
+3. Then:
+   - “Backend Projects ready: yes / mostly / no”
+   - “Blocking gaps for frontend”
+   - “Top 3 backend follow-ups”
+
+Главный вопрос:
+Можно ли уже считать Projects contract stable enough for frontend feature work?

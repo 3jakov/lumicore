@@ -1,0 +1,78 @@
+Сделай strict cross-check review между backend, shared-types и frontend для Projects в репозитории LUMICO.
+
+Repository:
+C:\git\lumicore
+
+Source of truth:
+- CLAUDE.md
+- docs/PRD.md
+- docs/TECH_STACK.md
+- docs/ARCHITECTURE.md
+- docs/IMPLEMENTATION_PLAN.md
+
+Scope review:
+- apps/api/
+- packages/shared-types/
+- apps/web/
+
+Primary goal:
+Найти реальные несоответствия между:
+- Prisma/backend API
+- shared-types
+- frontend usage
+
+This is the highest-value review.
+Do not review layers independently. Review the boundaries between them.
+
+Проверь обязательно:
+1. Backend response shapes vs frontend assumptions
+   - GET /api/v1/projects
+   - GET /api/v1/projects/:id
+2. shared-types coverage
+   - существуют ли реальные project contracts
+   - или frontend вынужден жить на local types
+3. Enum consistency
+   - ProjectStatus values
+   - any display_id / prefix assumptions
+4. Field naming consistency
+   - snake_case vs camelCase
+   - optional vs required
+   - nullable vs undefined
+5. Pagination/meta consistency
+   - backend list response
+   - frontend query/list expectations
+6. Cross-layer blockers
+   - что сломается первым при detail/create implementation
+   - какие временные решения на фронте уже опасны
+   - каких shared-types сейчас не хватает больше всего
+
+What counts as a finding:
+- backend says one thing, frontend expects another
+- shared-types missing/incorrect, causing drift
+- enum/value mismatch
+- field naming mismatch
+- nullable/optional mismatch
+- response envelope mismatch
+- anything that can cause wasted work in next Projects features
+
+What NOT to include:
+- isolated frontend-only or backend-only nitpicks
+- style issues
+- non-actionable architecture essays
+
+Format:
+1. Findings first, ordered by severity
+2. For each finding:
+   - severity: P1 / P2 / P3
+   - boundary affected: backend / shared-types / frontend
+   - files involved
+   - lines if possible
+   - issue
+   - impact
+3. Then:
+   - “Projects cross-layer contract health: good / shaky / broken”
+   - “Can frontend continue safely: yes / mostly / no”
+   - “Top 5 concrete alignment fixes”
+
+Главный вопрос:
+Есть ли уже достаточно стабильный contract for Projects, или команда сейчас рискует плодить временные типы и неверные assumptions?
