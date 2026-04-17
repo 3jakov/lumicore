@@ -1,6 +1,8 @@
 import {
   BadRequestException,
   ForbiddenException,
+  forwardRef,
+  Inject,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -10,6 +12,11 @@ import type {
   TimesheetSummary,
   TimesheetDay,
   PauseSummary,
+  ActiveTimerEntry,
+  TimerStartedEvent,
+  TimerPausedEvent,
+  TimerResumedEvent,
+  TimerStoppedEvent,
 } from '@lumicore/shared-types';
 import type { PaginatedResponse } from '@lumicore/shared-types';
 import { PrismaService } from '../database/prisma.service';
@@ -17,14 +24,35 @@ import { StartTimeEntryDto } from './dto/start-time-entry.dto';
 import { ListTimeEntriesDto } from './dto/list-time-entries.dto';
 import { TimesheetQueryDto } from './dto/timesheet-query.dto';
 import type { Pause, TimeEntry } from '@prisma/client';
+import { Workbook } from 'exceljs';
+import { TimeTrackingGateway } from './time-tracking.gateway';
 
 // ─── Internal query result type ───────────────────────────────────────────────
 
-type TimeEntryWithPauses = TimeEntry & { pauses: Pause[] };
+type TimeEntryWithPauses = TimeEntry & {
+  pauses: Pause[];
+  project?: { name: string } | null;
+  task?: { name: string } | null;
+};
+
+// ─── Duration formatter for Excel export ─────────────────────────────────────
+
+function formatDurationExcel(seconds: number): string {
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = seconds % 60;
+  if (h > 0) return `${h}h ${String(m).padStart(2, '0')}m`;
+  if (m > 0) return `${m}m ${String(s).padStart(2, '0')}s`;
+  return `${s}s`;
+}
 
 @Injectable()
 export class TimeTrackingService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    @Inject(forwardRef(() => TimeTrackingGateway))
+    private readonly gateway: TimeTrackingGateway,
+  ) {}
 
   // ─── Create (start timer or manual entry) ─────────────────────────────────
 
@@ -111,8 +139,21 @@ export class TimeTrackingService {
         needs_review: false,
         is_confirmed: false,
       },
-      include: { pauses: true },
+      include: {
+        pauses: true,
+        project: { select: { name: true } },
+        task: { select: { name: true } },
+      },
     });
+
+    this.gateway.emitTimerEvent('timer:started', {
+      employee_id: employeeId,
+      project_id: entry.project_id,
+      project_name: entry.project?.name ?? null,
+      task_id: entry.task_id,
+      task_name: entry.task?.name ?? null,
+      started_at: entry.started_at.toISOString(),
+    } satisfies TimerStartedEvent);
 
     return this.toDetail(entry);
   }
@@ -154,6 +195,11 @@ export class TimeTrackingService {
       });
     });
 
+    this.gateway.emitTimerEvent('timer:paused', {
+      employee_id: employeeId,
+      time_entry_id: id,
+    } satisfies TimerPausedEvent);
+
     return this.toDetail(updated);
   }
 
@@ -190,6 +236,11 @@ export class TimeTrackingService {
         include: { pauses: true },
       });
     });
+
+    this.gateway.emitTimerEvent('timer:resumed', {
+      employee_id: employeeId,
+      time_entry_id: id,
+    } satisfies TimerResumedEvent);
 
     return this.toDetail(updated);
   }
@@ -248,6 +299,11 @@ export class TimeTrackingService {
         include: { pauses: true },
       });
     });
+
+    this.gateway.emitTimerEvent('timer:stopped', {
+      employee_id: employeeId,
+      time_entry_id: id,
+    } satisfies TimerStoppedEvent);
 
     return this.toDetail(updated);
   }
@@ -359,6 +415,88 @@ export class TimeTrackingService {
       total_tracked_seconds: totalTracked,
       days,
     };
+  }
+
+  // ─── Praegu (live view) ────────────────────────────────────────────────────
+
+  /**
+   * GET /api/v1/time-entries/praegu
+   * Returns all currently active (running) timers across all employees.
+   * Used by the Praegu live-view board.
+   */
+  async getPraegu(): Promise<ActiveTimerEntry[]> {
+    const entries = await this.prisma.timeEntry.findMany({
+      where: { ended_at: null },
+      include: {
+        employee: { select: { full_name: true } },
+        project: { select: { name: true } },
+        task: { select: { name: true } },
+        pauses: true,
+      },
+      orderBy: { started_at: 'asc' },
+    });
+
+    return entries.map((entry) => {
+      const isPaused = entry.pauses.some((p) => p.pause_end === null);
+
+      // Sum closed pauses
+      let pauseDurationSeconds = 0;
+      for (const p of entry.pauses) {
+        if (p.pause_end !== null) {
+          pauseDurationSeconds += Math.floor(
+            (p.pause_end.getTime() - p.pause_start.getTime()) / 1000,
+          );
+        } else {
+          // Open pause — count up to now
+          pauseDurationSeconds += Math.floor(
+            (Date.now() - p.pause_start.getTime()) / 1000,
+          );
+        }
+      }
+
+      return {
+        employee_id: entry.employee_id,
+        employee_name: entry.employee.full_name,
+        time_entry_id: entry.id,
+        project_id: entry.project_id,
+        project_name: entry.project?.name ?? null,
+        task_id: entry.task_id,
+        task_name: entry.task?.name ?? null,
+        started_at: entry.started_at.toISOString(),
+        is_paused: isPaused,
+        pause_duration_seconds: pauseDurationSeconds,
+      } satisfies ActiveTimerEntry;
+    });
+  }
+
+  // ─── Timesheet Excel export ────────────────────────────────────────────────
+
+  /**
+   * GET /api/v1/time-entries/timesheet/export
+   * Returns an ExcelJS Workbook with the timesheet data for downloading.
+   */
+  async getTimesheetExport(dto: TimesheetQueryDto, employeeId: number): Promise<Workbook> {
+    const summary = await this.getTimesheet(dto, employeeId);
+
+    const workbook = new Workbook();
+    const sheet = workbook.addWorksheet('Timesheet');
+
+    // Header row
+    sheet.addRow(['Date', 'Tracked', 'Entries']);
+
+    // Data rows
+    for (const day of summary.days) {
+      sheet.addRow([
+        day.date,
+        formatDurationExcel(day.tracked_seconds),
+        day.entry_count,
+      ]);
+    }
+
+    // Total row
+    sheet.addRow(['Total', formatDurationExcel(summary.total_tracked_seconds), '']);
+
+    return workbook;
   }
 
   // ─── Private helpers ──────────────────────────────────────────────────────

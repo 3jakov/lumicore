@@ -7,6 +7,7 @@ import {
   ParseIntPipe,
   Post,
   Query,
+  Res,
   UseGuards,
 } from '@nestjs/common';
 import type {
@@ -16,6 +17,7 @@ import type {
   PauseTimeEntryResponse,
   ResumeTimeEntryResponse,
   StopTimeEntryResponse,
+  ActiveTimerEntry,
 } from '@lumicore/shared-types';
 import type { PaginatedResponse } from '@lumicore/shared-types';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
@@ -25,6 +27,7 @@ import { TimeTrackingService } from './time-tracking.service';
 import { StartTimeEntryDto } from './dto/start-time-entry.dto';
 import { ListTimeEntriesDto } from './dto/list-time-entries.dto';
 import { TimesheetQueryDto } from './dto/timesheet-query.dto';
+import type { Response } from 'express';
 
 @Controller('time-entries')
 @UseGuards(JwtAuthGuard)
@@ -32,6 +35,15 @@ export class TimeTrackingController {
   constructor(private readonly timeTrackingService: TimeTrackingService) {}
 
   // ─── Literal routes first (must precede /:id routes) ──────────────────────
+
+  /**
+   * GET /api/v1/time-entries/praegu
+   * Live view of all currently running timers across all employees.
+   */
+  @Get('praegu')
+  getPraegu(): Promise<ActiveTimerEntry[]> {
+    return this.timeTrackingService.getPraegu();
+  }
 
   /**
    * GET /api/v1/time-entries/timesheet
@@ -44,6 +56,25 @@ export class TimeTrackingController {
     @CurrentUserDecorator() user: CurrentUser,
   ): Promise<TimesheetSummary> {
     return this.timeTrackingService.getTimesheet(dto, user.id);
+  }
+
+  /**
+   * GET /api/v1/time-entries/timesheet/export
+   * Download an Excel file with the timesheet data for a date range.
+   * Query: ?date_from=YYYY-MM-DD&date_to=YYYY-MM-DD (both required)
+   */
+  @Get('timesheet/export')
+  async exportTimesheet(
+    @Query() dto: TimesheetQueryDto,
+    @CurrentUserDecorator() user: CurrentUser,
+    @Res() res: Response,
+  ): Promise<void> {
+    const workbook = await this.timeTrackingService.getTimesheetExport(dto, user.id);
+    const filename = `timesheet-${dto.date_from}.xlsx`;
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    await workbook.xlsx.write(res);
+    res.end();
   }
 
   // ─── List ─────────────────────────────────────────────────────────────────

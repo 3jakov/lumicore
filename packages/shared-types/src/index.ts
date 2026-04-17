@@ -10,3 +10,5 @@ export * from './tool.types';
 export * from './doc-acknowledgement.types';
 export * from './api-responses.types';
 export * from './settings.types';
+export * from './websocket.types';
+export * from './praegu.types';
