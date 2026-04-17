@@ -30,10 +30,6 @@ export function getActiveTimeEntry(entries: TimeEntrySummary[] | undefined): Tim
 }
 
 export function getLiveTrackedSeconds(entry: TimeEntrySummary, nowMs: number): number | null {
-  if (entry.ended_at !== null || entry.is_paused) {
-    return entry.duration_seconds;
-  }
-
   const startedAt = new Date(entry.started_at);
   if (Number.isNaN(startedAt.getTime())) {
     return entry.duration_seconds;
@@ -41,6 +37,10 @@ export function getLiveTrackedSeconds(entry: TimeEntrySummary, nowMs: number): n
 
   const elapsedSeconds =
     Math.floor((nowMs - startedAt.getTime()) / 1000) - entry.pause_duration_seconds;
+
+  if (entry.ended_at !== null || entry.is_paused) {
+    return Math.max(0, elapsedSeconds);
+  }
 
   return Math.max(0, elapsedSeconds);
 }

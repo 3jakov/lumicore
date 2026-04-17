@@ -207,22 +207,24 @@ export function TimeEntryForm(): JSX.Element {
             </select>
           </div>
 
-          <div className="space-y-1.5 lg:col-span-2">
-            <label
-              className="text-sm font-semibold text-text-primary"
-              htmlFor="time-entry-no-project-reason"
-            >
-              Reason when no project is selected
-            </label>
-            <textarea
-              id="time-entry-no-project-reason"
-              value={form.no_project_reason}
-              onChange={(event) => updateField('no_project_reason', event.target.value)}
-              disabled={disabled}
-              className={`${inputCls} min-h-28 resize-y`}
-              placeholder="Explain what you are doing if this time is not linked to a project."
-            />
-          </div>
+          {!form.project_id ? (
+            <div className="space-y-1.5 lg:col-span-2">
+              <label
+                className="text-sm font-semibold text-text-primary"
+                htmlFor="time-entry-no-project-reason"
+              >
+                Reason when no project is selected
+              </label>
+              <textarea
+                id="time-entry-no-project-reason"
+                value={form.no_project_reason}
+                onChange={(event) => updateField('no_project_reason', event.target.value)}
+                disabled={disabled}
+                className={`${inputCls} min-h-28 resize-y`}
+                placeholder="Explain what you are doing if this time is not linked to a project."
+              />
+            </div>
+          ) : null}
 
           {form.is_manual ? (
             <>
