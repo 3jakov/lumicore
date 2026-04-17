@@ -10,6 +10,7 @@ import { TasksModule } from './tasks/tasks.module';
 import { ToolsModule } from './tools/tools.module';
 import { TimeTrackingModule } from './time-tracking/time-tracking.module';
 import { SettingsModule } from './settings/settings.module';
+import { DocAcknowledgementModule } from './doc-acknowledgement/doc-acknowledgement.module';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { SettingsModule } from './settings/settings.module';
     ToolsModule,
     TimeTrackingModule,
     SettingsModule,
+    DocAcknowledgementModule,
   ],
   controllers: [AppController],
   providers: [AppService],
