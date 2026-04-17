@@ -1,7 +1,7 @@
 # CLAUDE.md — AI Development Guidelines
 **Project:** LUMICO Field & Production Management Platform
 **For:** Claude Code (backend) + Codex (frontend)
-**Last updated:** 2026-04-05
+**Last updated:** 2026-04-08
 
 ---
 
@@ -214,9 +214,9 @@ POST   /api/v1/internal-documents                 # Save metadata (title, catego
 GET    /api/v1/internal-documents                 # Admin: list all documents
 PATCH  /api/v1/internal-documents/:id             # Admin: update (new file = version bump)
 DELETE /api/v1/internal-documents/:id             # Admin: soft archive
-POST   /api/v1/internal-documents/:id/assign      # Admin: assign to employees/groups
-GET    /api/v1/internal-documents/:id/status      # Admin: compliance matrix
-GET    /api/v1/internal-documents/my              # Employee: my pending + acknowledged docs
+POST   /api/v1/internal-documents/:id/assign      # Admin: assign to employees/groups; payload includes optional due_date
+GET    /api/v1/internal-documents/:id/status      # Admin: compliance matrix; status = acknowledged | pending | overdue (computed, not stored)
+GET    /api/v1/internal-documents/my              # Employee: my pending + acknowledged docs; includes computed overdue flag
 POST   /api/v1/internal-documents/:id/acknowledge # Employee: confirm acknowledgement
 
 # Settings
@@ -225,8 +225,15 @@ POST   /api/v1/settings/tags
 PATCH  /api/v1/settings/tags/:id
 DELETE /api/v1/settings/tags/:id
 GET    /api/v1/settings/roles
-# ... similar CRUD for roles, groups
+POST   /api/v1/settings/roles
+PATCH  /api/v1/settings/roles/:id
+DELETE /api/v1/settings/roles/:id
+# Groups: read-only in Phase 1 — the four groups (Paigaldus, Tootmine, Kontor, Ladu) are fixed
+# No POST/PATCH/DELETE for groups in Phase 1 (per PRD FR-SET-10)
+GET    /api/v1/settings/groups
 ```
+
+**Last updated:** 2026-04-08
 
 ### Database — Prisma Rules
 
@@ -634,5 +641,23 @@ pnpm --filter web dev   # runs on :3000
 - Full PRD (Phase 1): `docs/PRD.md`
 - Tech stack decisions and rationale: `docs/TECH_STACK.md`
 - System architecture and data flow: `docs/ARCHITECTURE.md`
+- Module handoff review checklist: `docs/MODULE_HANDOFF_CHECKLIST.md`
 - Prisma schema: `apps/api/prisma/schema.prisma`
 - API base URL: `http://localhost:3001/api/v1` (development)
+
+## Module Handoff Review Workflow
+
+Use `docs/MODULE_HANDOFF_CHECKLIST.md` before declaring any module ready for frontend integration.
+
+How we use it:
+
+- **Codex** uses it when checking whether frontend can safely begin integrating a module.
+- **Claude Code** uses it before claiming backend handoff readiness for a module.
+- **Gemini** reviews should be framed around this checklist so findings stay focused on real handoff blockers rather than generic code quality commentary.
+
+Expected outcome of a handoff review:
+
+- `Backend ready? yes / mostly / no`
+- `Shared contract ready? yes / mostly / no`
+- `Frontend can proceed safely? yes / mostly / no`
+- `Top 3 blockers or follow-ups`
