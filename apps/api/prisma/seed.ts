@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client';
+import * as bcrypt from 'bcrypt';
 
 const prisma = new PrismaClient();
 
@@ -52,6 +53,33 @@ async function main() {
     });
   }
   console.log(`Seeded ${templates.length} task templates`);
+
+  // Seed admin user (idempotent — upsert by email)
+  const adminRole = await prisma.role.findUnique({ where: { name: 'Administraator' } });
+  if (adminRole) {
+    const passwordHash = await bcrypt.hash('admin123', 10);
+    const admin = await prisma.employee.upsert({
+      where: { email: 'admin@lumico.ee' },
+      update: {},
+      create: {
+        full_name: 'Admin Lumico',
+        initials: 'AL',
+        email: 'admin@lumico.ee',
+        password_hash: passwordHash,
+        group: 'Kontor',
+        avatar_color: '#4F46E5',
+        language: 'et',
+        time_format: 'H24',
+      },
+    });
+    // Assign Administraator role (idempotent)
+    await prisma.employeeRole.upsert({
+      where: { employee_id_role_id: { employee_id: admin.id, role_id: adminRole.id } },
+      update: {},
+      create: { employee_id: admin.id, role_id: adminRole.id },
+    });
+    console.log(`Seeded admin user: admin@lumico.ee / admin123`);
+  }
 
   // Seed company settings (idempotent — only create if none exist)
   const existingSettings = await prisma.companySettings.findFirst();

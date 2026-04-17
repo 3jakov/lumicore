@@ -3,8 +3,9 @@
 import { AlertCircle, FolderOpen } from 'lucide-react';
 import Link from 'next/link';
 
+import type { ProjectSummary } from '@lumicore/shared-types';
+
 import { useProjects } from '@/hooks/use-projects';
-import type { ProjectSummary } from '@/types/contracts';
 
 import { ProjectStatusBadge } from './project-status-badge';
 

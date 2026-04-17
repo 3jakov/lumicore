@@ -627,5 +627,26 @@ These are the first tasks to execute, in order:
 
 ---
 
+## Module Handoff Reviews
+
+Before any module is declared ready for the next layer (backend → shared-types → frontend), run a handoff review against:
+
+- `docs/MODULE_HANDOFF_CHECKLIST.md`
+
+How to use it:
+
+- **Claude Code**: confirm backend module existence, runtime endpoint readiness, and shared-type completeness before handing off.
+- **Codex**: confirm frontend can proceed without guessing contracts or creating unnecessary local adapter types.
+- **Gemini**: use the checklist as the framing for bundle-based external review so the result stays focused on integration readiness.
+
+The handoff verdict should always end with:
+
+- `Backend ready? yes / mostly / no`
+- `Shared contract ready? yes / mostly / no`
+- `Frontend can proceed safely? yes / mostly / no`
+- `Top 3 blockers or follow-ups`
+
+---
+
 *Document maintained by LUMICO development team. Last updated: 2026-04-05.*
 *Always read alongside: CLAUDE.md, docs/PRD.md, docs/TECH_STACK.md, docs/ARCHITECTURE.md*
