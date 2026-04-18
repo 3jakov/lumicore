@@ -1,4 +1,6 @@
-import { PlaceholderRoutePage } from '@/components/layout/placeholder-route-page';
+import { notFound } from 'next/navigation';
+
+import { EmployeeDetailShell } from '@/components/employees/employee-detail-shell';
 
 type PersonDetailPageProps = Readonly<{
   params: Promise<{
@@ -10,12 +12,11 @@ export default async function PersonDetailPage({
   params,
 }: PersonDetailPageProps): Promise<JSX.Element> {
   const { id } = await params;
+  const employeeId = Number(id);
 
-  return (
-    <PlaceholderRoutePage
-      eyebrow="Team"
-      title={`Employee ${id}`}
-      description="Reserved for employee profile, permissions, and later edit controls."
-    />
-  );
+  if (!Number.isInteger(employeeId) || employeeId <= 0) {
+    notFound();
+  }
+
+  return <EmployeeDetailShell id={employeeId} />;
 }
