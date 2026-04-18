@@ -62,7 +62,6 @@ export interface CreateEmployeeDto {
   group: EmployeeGroup;
   phone?: string;
   email?: string;
-  password?: string;
   work_schedule?: string;
   norm_hours_per_week?: number;
   project_access_all?: boolean;
