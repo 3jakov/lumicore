@@ -42,5 +42,7 @@ export const queryKeys = {
   },
   settings: {
     roles: ['settings', 'roles'] as const,
+    tags: ['settings', 'tags'] as const,
+    tagsFiltered: (entityType?: string) => ['settings', 'tags', entityType] as const,
   },
 };

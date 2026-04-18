@@ -1,11 +1,15 @@
-import { PlaceholderRoutePage } from '@/components/layout/placeholder-route-page';
+import { PageHeader } from '@/components/layout/page-header';
+import { TagsSettings } from '@/components/settings/tags-settings';
 
 export default function TagSettingsPage(): JSX.Element {
   return (
-    <PlaceholderRoutePage
-      eyebrow="Settings"
-      title="Tag settings scaffold"
-      description="Prepared for project and task tag management surfaces."
-    />
+    <div className="space-y-6">
+      <PageHeader
+        eyebrow="Settings"
+        title="Tags"
+        description="Manage reusable project and task tags without leaving the settings area."
+      />
+      <TagsSettings />
+    </div>
   );
 }

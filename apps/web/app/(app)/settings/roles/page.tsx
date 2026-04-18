@@ -1,11 +1,15 @@
-import { PlaceholderRoutePage } from '@/components/layout/placeholder-route-page';
+import { PageHeader } from '@/components/layout/page-header';
+import { RolesSettings } from '@/components/settings/roles-settings';
 
 export default function RoleSettingsPage(): JSX.Element {
   return (
-    <PlaceholderRoutePage
-      eyebrow="Settings"
-      title="Role settings scaffold"
-      description="Prepared for role management without introducing admin flows ahead of backend support."
-    />
+    <div className="space-y-6">
+      <PageHeader
+        eyebrow="Settings"
+        title="Roles"
+        description="Review the current access roles and maintain the role catalogue for the organisation."
+      />
+      <RolesSettings />
+    </div>
   );
 }
