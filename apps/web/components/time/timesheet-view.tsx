@@ -2,7 +2,9 @@
 
 import { useMemo, useState } from 'react';
 
+import { env } from '@/lib/config/env';
 import { useTimesheet } from '@/hooks/use-timesheet';
+import { useAuthStore } from '@/store/auth.store';
 
 import { formatDuration } from './time-utils';
 
@@ -34,9 +36,75 @@ function getCurrentMonthRange(): DateRangeState {
 
 export function TimesheetView(): JSX.Element {
   const [range, setRange] = useState<DateRangeState>(getCurrentMonthRange);
+  const [isExporting, setIsExporting] = useState(false);
+  const [exportError, setExportError] = useState<string | null>(null);
   const { data, isLoading, isError, error } = useTimesheet(range);
+  const accessToken = useAuthStore((state) => state.accessToken);
 
   const totalDays = useMemo(() => data?.days ?? [], [data]);
+  const canExport = Boolean(range.date_from && range.date_to) && !isExporting;
+
+  function buildExportUrl(): string {
+    const searchParams = new URLSearchParams({
+      date_from: range.date_from,
+      date_to: range.date_to,
+    });
+
+    return `${env.apiUrl}/api/v1/time-entries/timesheet/export?${searchParams.toString()}`;
+  }
+
+  function getFilename(contentDisposition: string | null): string {
+    if (!contentDisposition) return 'timesheet.xlsx';
+
+    const utf8Match = contentDisposition.match(/filename\*=UTF-8''([^;]+)/i);
+    if (utf8Match?.[1]) {
+      return decodeURIComponent(utf8Match[1]);
+    }
+
+    const basicMatch = contentDisposition.match(/filename="([^"]+)"/i);
+    if (basicMatch?.[1]) {
+      return basicMatch[1];
+    }
+
+    return 'timesheet.xlsx';
+  }
+
+  async function handleExport(): Promise<void> {
+    if (!canExport) return;
+
+    setIsExporting(true);
+    setExportError(null);
+
+    try {
+      const response = await fetch(buildExportUrl(), {
+        method: 'GET',
+        credentials: 'include',
+        headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined,
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to export timesheet.');
+      }
+
+      const filename = getFilename(response.headers.get('Content-Disposition'));
+      const blob = await response.blob();
+      const downloadUrl = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+
+      link.href = downloadUrl;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(downloadUrl);
+    } catch (err) {
+      setExportError(
+        err instanceof Error ? err.message : 'Failed to export timesheet.',
+      );
+    } finally {
+      setIsExporting(false);
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -48,34 +116,54 @@ export function TimesheetView(): JSX.Element {
             </p>
             <h2 className="mt-2 text-2xl font-semibold text-text-primary">Daily breakdown</h2>
           </div>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-1.5">
-              <label className="text-sm font-semibold text-text-primary" htmlFor="timesheet-date-from">
-                From
-              </label>
-              <input
-                id="timesheet-date-from"
-                type="date"
-                value={range.date_from}
-                onChange={(event) =>
-                  setRange((current) => ({ ...current, date_from: event.target.value }))
-                }
-                className={inputCls}
-              />
+          <div className="flex flex-col gap-4 lg:items-end">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-1.5">
+                <label className="text-sm font-semibold text-text-primary" htmlFor="timesheet-date-from">
+                  From
+                </label>
+                <input
+                  id="timesheet-date-from"
+                  type="date"
+                  value={range.date_from}
+                  onChange={(event) => {
+                    setRange((current) => ({ ...current, date_from: event.target.value }));
+                    setExportError(null);
+                  }}
+                  className={inputCls}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-sm font-semibold text-text-primary" htmlFor="timesheet-date-to">
+                  To
+                </label>
+                <input
+                  id="timesheet-date-to"
+                  type="date"
+                  value={range.date_to}
+                  onChange={(event) => {
+                    setRange((current) => ({ ...current, date_to: event.target.value }));
+                    setExportError(null);
+                  }}
+                  className={inputCls}
+                />
+              </div>
             </div>
-            <div className="space-y-1.5">
-              <label className="text-sm font-semibold text-text-primary" htmlFor="timesheet-date-to">
-                To
-              </label>
-              <input
-                id="timesheet-date-to"
-                type="date"
-                value={range.date_to}
-                onChange={(event) =>
-                  setRange((current) => ({ ...current, date_to: event.target.value }))
-                }
-                className={inputCls}
-              />
+
+            <div className="flex flex-col items-start gap-2 lg:items-end">
+              <button
+                type="button"
+                onClick={() => void handleExport()}
+                disabled={!canExport}
+                className="inline-flex items-center justify-center rounded-full bg-brand-700 px-4 py-2 text-sm font-semibold text-text-inverse transition hover:bg-brand-800 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {isExporting ? 'Exporting...' : 'Export Excel'}
+              </button>
+              {exportError ? (
+                <p role="alert" className="text-sm text-red-600">
+                  {exportError}
+                </p>
+              ) : null}
             </div>
           </div>
         </div>
