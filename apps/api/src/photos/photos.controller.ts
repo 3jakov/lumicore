@@ -29,7 +29,7 @@ export class PhotosController {
   @HttpCode(200)
   getUploadUrl(
     @Query('filename') filename: string,
-  ): PhotoUploadUrlResponse {
+  ): Promise<PhotoUploadUrlResponse> {
     return this.photosService.getUploadUrl(filename);
   }
 

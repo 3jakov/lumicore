@@ -12,10 +12,10 @@ import { SaveDocumentDto } from './dto/save-document.dto';
 export class DocumentsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  getUploadUrl(filename: string): DocumentUploadUrlResponse {
+  async getUploadUrl(filename: string): Promise<DocumentUploadUrlResponse> {
     const s3Key = generateS3Key('documents', filename);
     return {
-      upload_url: buildPresignedUploadUrl(s3Key),
+      upload_url: await buildPresignedUploadUrl(s3Key),
       s3_key: s3Key,
     };
   }
@@ -44,7 +44,9 @@ export class DocumentsService {
       orderBy: { uploaded_at: 'desc' },
     });
 
-    return documents.map((d) => this.toDocumentSummary(d));
+    return Promise.all(
+      documents.map((document) => this.toDocumentSummary(document)),
+    );
   }
 
   async deleteDocument(id: number): Promise<void> {
@@ -57,7 +59,7 @@ export class DocumentsService {
     await this.prisma.document.delete({ where: { id } });
   }
 
-  private toDocumentSummary(document: {
+  private async toDocumentSummary(document: {
     id: number;
     project_id: number;
     s3_key: string;
@@ -66,7 +68,7 @@ export class DocumentsService {
     file_size_bytes: number;
     uploaded_by_id: number;
     uploaded_at: Date;
-  }): DocumentSummary {
+  }): Promise<DocumentSummary> {
     return {
       id: document.id,
       project_id: document.project_id,
@@ -76,7 +78,7 @@ export class DocumentsService {
       file_size_bytes: document.file_size_bytes,
       uploaded_by_id: document.uploaded_by_id,
       uploaded_at: document.uploaded_at.toISOString(),
-      download_url: buildSignedReadUrl(document.s3_key) as string,
+      download_url: (await buildSignedReadUrl(document.s3_key)) as string,
     };
   }
 }

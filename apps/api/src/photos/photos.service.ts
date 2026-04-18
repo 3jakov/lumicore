@@ -13,10 +13,10 @@ import { GetPhotosDto } from './dto/get-photos.dto';
 export class PhotosService {
   constructor(private readonly prisma: PrismaService) {}
 
-  getUploadUrl(filename: string): PhotoUploadUrlResponse {
+  async getUploadUrl(filename: string): Promise<PhotoUploadUrlResponse> {
     const s3Key = generateS3Key('photos', filename);
     return {
-      upload_url: buildPresignedUploadUrl(s3Key),
+      upload_url: await buildPresignedUploadUrl(s3Key),
       s3_key: s3Key,
     };
   }
@@ -57,10 +57,10 @@ export class PhotosService {
       orderBy: { uploaded_at: 'desc' },
     });
 
-    return photos.map((p) => this.toPhotoSummary(p));
+    return Promise.all(photos.map((photo) => this.toPhotoSummary(photo)));
   }
 
-  private toPhotoSummary(photo: {
+  private async toPhotoSummary(photo: {
     id: number;
     s3_key: string;
     thumbnail_s3_key: string | null;
@@ -74,7 +74,7 @@ export class PhotosService {
     uploaded_at: Date;
     file_size_bytes: number;
     original_filename: string;
-  }): PhotoSummary {
+  }): Promise<PhotoSummary> {
     return {
       id: photo.id,
       s3_key: photo.s3_key,
@@ -89,8 +89,8 @@ export class PhotosService {
       uploaded_at: photo.uploaded_at.toISOString(),
       file_size_bytes: photo.file_size_bytes,
       original_filename: photo.original_filename,
-      url: buildSignedReadUrl(photo.s3_key) as string,
-      thumbnail_url: buildSignedReadUrl(photo.thumbnail_s3_key),
+      url: (await buildSignedReadUrl(photo.s3_key)) as string,
+      thumbnail_url: await buildSignedReadUrl(photo.thumbnail_s3_key),
     };
   }
 }

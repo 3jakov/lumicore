@@ -43,7 +43,7 @@ export class DocAcknowledgementController {
   @Post('upload-url')
   @UseGuards(RolesGuard)
   @Roles('Administraator')
-  getUploadUrl(): InternalDocUploadUrlResponse {
+  getUploadUrl(): Promise<InternalDocUploadUrlResponse> {
     return this.docAckService.getUploadUrl();
   }
 

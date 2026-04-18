@@ -4,7 +4,6 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { randomUUID } from 'crypto';
 import type {
   InternalDocumentSummary,
   DocAckAssignmentSummary,
@@ -16,6 +15,10 @@ import type {
 } from '@lumicore/shared-types';
 import { EmployeeGroup } from '@lumicore/shared-types';
 import { PrismaService } from '../database/prisma.service';
+import {
+  buildPresignedUploadUrl,
+  generateS3Key,
+} from '../common/s3.helper';
 import { CreateInternalDocumentDto } from './dto/create-internal-document.dto';
 import { UpdateInternalDocumentDto } from './dto/update-internal-document.dto';
 import { AssignDocumentDto } from './dto/assign-document.dto';
@@ -26,10 +29,10 @@ export class DocAcknowledgementService {
 
   // ─── Upload URL ───────────────────────────────────────────────────────────
 
-  getUploadUrl(): InternalDocUploadUrlResponse {
-    const s3Key = `internal-docs/${randomUUID()}.pdf`;
+  async getUploadUrl(): Promise<InternalDocUploadUrlResponse> {
+    const s3Key = generateS3Key('internal-docs', 'document.pdf');
     return {
-      upload_url: `https://placeholder-s3.example.com/${s3Key}`, // TODO(E7): replace with real S3 presigned URL
+      upload_url: await buildPresignedUploadUrl(s3Key),
       s3_key: s3Key,
     };
   }

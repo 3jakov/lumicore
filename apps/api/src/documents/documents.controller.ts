@@ -32,7 +32,7 @@ export class DocumentsController {
   @HttpCode(200)
   getUploadUrl(
     @Query('filename') filename: string,
-  ): DocumentUploadUrlResponse {
+  ): Promise<DocumentUploadUrlResponse> {
     return this.documentsService.getUploadUrl(filename);
   }
 
