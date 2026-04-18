@@ -30,6 +30,7 @@ export const queryKeys = {
     lists: ['time-entries', 'list'] as const,
     list: (filters?: ListFilters) => ['time-entries', 'list', filters] as const,
     detail: (id: number) => ['time-entries', 'detail', id] as const,
+    praegu: ['time-entries', 'praegu'] as const,
     timesheets: ['time-entries', 'timesheet'] as const,
     timesheet: (filters?: ListFilters) => ['time-entries', 'timesheet', filters] as const,
   },

@@ -1,4 +1,4 @@
-import type { TimeEntrySummary } from '@lumicore/shared-types';
+import type { ActiveTimerEntry, TimeEntrySummary } from '@lumicore/shared-types';
 
 export function formatDateTime(value: string | null): string {
   if (!value) return 'In progress';
@@ -41,6 +41,32 @@ export function getLiveTrackedSeconds(entry: TimeEntrySummary, nowMs: number): n
   if (entry.ended_at !== null || entry.is_paused) {
     return Math.max(0, elapsedSeconds);
   }
+
+  return Math.max(0, elapsedSeconds);
+}
+
+export function formatTime(value: string): string {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+
+  return date.toLocaleString('en-GB', {
+    timeStyle: 'short',
+  });
+}
+
+export function getLivePraeguSeconds(
+  entry: ActiveTimerEntry,
+  nowMs: number,
+  snapshotMs: number,
+): number {
+  const startedAt = new Date(entry.started_at);
+  if (Number.isNaN(startedAt.getTime())) {
+    return Math.max(0, entry.pause_duration_seconds);
+  }
+
+  const effectiveNowMs = entry.is_paused ? snapshotMs : nowMs;
+  const elapsedSeconds =
+    Math.floor((effectiveNowMs - startedAt.getTime()) / 1000) - entry.pause_duration_seconds;
 
   return Math.max(0, elapsedSeconds);
 }
