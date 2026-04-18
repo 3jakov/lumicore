@@ -78,7 +78,10 @@ export function ProjectDetailSection({ project }: ProjectDetailSectionProps): JS
         <DetailField label="Contract number" value={project.contract_number} />
         <DetailField label="Project manager ID" value={project.project_manager_id} />
         <DetailField label="Location address" value={project.location_address} />
+        <DetailField label="Location latitude" value={project.location_lat} />
+        <DetailField label="Location longitude" value={project.location_lng} />
         <DetailField label="Client company" value={project.client_company_name} />
+        <DetailField label="Client reg. code" value={project.client_reg_code} />
         <DetailField label="Client contact" value={project.client_contact_name} />
         <DetailField label="Client phone" value={project.client_phone} />
         <DetailField label="Client email" value={project.client_email} />

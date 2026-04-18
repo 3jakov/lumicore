@@ -23,8 +23,11 @@ export type ProjectFormState = {
   start_date: string;
   end_date: string;
   location_address: string;
+  location_lat: string;
+  location_lng: string;
   contract_number: string;
   client_company_name: string;
+  client_reg_code: string;
   client_contact_name: string;
   client_phone: string;
   client_email: string;
@@ -38,8 +41,11 @@ export const emptyProjectFormState: ProjectFormState = {
   start_date: '',
   end_date: '',
   location_address: '',
+  location_lat: '',
+  location_lng: '',
   contract_number: '',
   client_company_name: '',
+  client_reg_code: '',
   client_contact_name: '',
   client_phone: '',
   client_email: '',
@@ -60,8 +66,11 @@ type ComparableProjectState = {
   start_date: string | null;
   end_date: string | null;
   location_address: string | null;
+  location_lat: number | null;
+  location_lng: number | null;
   contract_number: string | null;
   client_company_name: string | null;
+  client_reg_code: string | null;
   client_contact_name: string | null;
   client_phone: string | null;
   client_email: string | null;
@@ -93,8 +102,11 @@ function toComparableProjectState(state: ProjectFormState): ComparableProjectSta
     start_date: toNullableDate(state.start_date),
     end_date: toNullableDate(state.end_date),
     location_address: toNullableString(state.location_address),
+    location_lat: toNullableNumber(state.location_lat),
+    location_lng: toNullableNumber(state.location_lng),
     contract_number: toNullableString(state.contract_number),
     client_company_name: toNullableString(state.client_company_name),
+    client_reg_code: toNullableString(state.client_reg_code),
     client_contact_name: toNullableString(state.client_contact_name),
     client_phone: toNullableString(state.client_phone),
     client_email: toNullableString(state.client_email),
@@ -110,8 +122,11 @@ export function normalizeProjectFormState(project: Pick<
   | 'start_date'
   | 'end_date'
   | 'location_address'
+  | 'location_lat'
+  | 'location_lng'
   | 'contract_number'
   | 'client_company_name'
+  | 'client_reg_code'
   | 'client_contact_name'
   | 'client_phone'
   | 'client_email'
@@ -124,8 +139,11 @@ export function normalizeProjectFormState(project: Pick<
     start_date: project.start_date ?? '',
     end_date: project.end_date ?? '',
     location_address: project.location_address ?? '',
+    location_lat: project.location_lat !== null ? String(project.location_lat) : '',
+    location_lng: project.location_lng !== null ? String(project.location_lng) : '',
     contract_number: project.contract_number ?? '',
     client_company_name: project.client_company_name ?? '',
+    client_reg_code: project.client_reg_code ?? '',
     client_contact_name: project.client_contact_name ?? '',
     client_phone: project.client_phone ?? '',
     client_email: project.client_email ?? '',
@@ -144,8 +162,11 @@ export function buildCreateProjectPayload(state: ProjectFormState): CreateProjec
     start_date: comparable.start_date ?? undefined,
     end_date: comparable.end_date ?? undefined,
     location_address: comparable.location_address ?? undefined,
+    location_lat: comparable.location_lat ?? undefined,
+    location_lng: comparable.location_lng ?? undefined,
     contract_number: comparable.contract_number ?? undefined,
     client_company_name: comparable.client_company_name ?? undefined,
+    client_reg_code: comparable.client_reg_code ?? undefined,
     client_contact_name: comparable.client_contact_name ?? undefined,
     client_phone: comparable.client_phone ?? undefined,
     client_email: comparable.client_email ?? undefined,
@@ -181,11 +202,20 @@ export function buildUpdateProjectPayload(
   if (initialComparable.location_address !== currentComparable.location_address) {
     payload.location_address = currentComparable.location_address;
   }
+  if (initialComparable.location_lat !== currentComparable.location_lat) {
+    payload.location_lat = currentComparable.location_lat;
+  }
+  if (initialComparable.location_lng !== currentComparable.location_lng) {
+    payload.location_lng = currentComparable.location_lng;
+  }
   if (initialComparable.contract_number !== currentComparable.contract_number) {
     payload.contract_number = currentComparable.contract_number;
   }
   if (initialComparable.client_company_name !== currentComparable.client_company_name) {
     payload.client_company_name = currentComparable.client_company_name;
+  }
+  if (initialComparable.client_reg_code !== currentComparable.client_reg_code) {
+    payload.client_reg_code = currentComparable.client_reg_code;
   }
   if (initialComparable.client_contact_name !== currentComparable.client_contact_name) {
     payload.client_contact_name = currentComparable.client_contact_name;
@@ -329,6 +359,38 @@ export function ProjectFormFields({
       </div>
 
       <div className="space-y-1.5">
+        <label className="text-sm font-semibold text-text-primary" htmlFor="project-location-lat">
+          Location latitude
+        </label>
+        <input
+          id="project-location-lat"
+          type="number"
+          step="any"
+          value={form.location_lat}
+          onChange={(event) => onFieldChange('location_lat', event.target.value)}
+          disabled={disabled}
+          className={inputCls}
+          placeholder="Optional latitude"
+        />
+      </div>
+
+      <div className="space-y-1.5">
+        <label className="text-sm font-semibold text-text-primary" htmlFor="project-location-lng">
+          Location longitude
+        </label>
+        <input
+          id="project-location-lng"
+          type="number"
+          step="any"
+          value={form.location_lng}
+          onChange={(event) => onFieldChange('location_lng', event.target.value)}
+          disabled={disabled}
+          className={inputCls}
+          placeholder="Optional longitude"
+        />
+      </div>
+
+      <div className="space-y-1.5">
         <label className="text-sm font-semibold text-text-primary" htmlFor="contract-number">
           Contract number
         </label>
@@ -355,6 +417,21 @@ export function ProjectFormFields({
           disabled={disabled}
           className={inputCls}
           placeholder="Optional company name"
+        />
+      </div>
+
+      <div className="space-y-1.5">
+        <label className="text-sm font-semibold text-text-primary" htmlFor="client-reg-code">
+          Client registration code
+        </label>
+        <input
+          id="client-reg-code"
+          type="text"
+          value={form.client_reg_code}
+          onChange={(event) => onFieldChange('client_reg_code', event.target.value)}
+          disabled={disabled}
+          className={inputCls}
+          placeholder="Optional registration code"
         />
       </div>
 
