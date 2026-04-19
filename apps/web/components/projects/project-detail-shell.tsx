@@ -4,11 +4,13 @@ import type { PaginatedResponse, ProjectDetail, ProjectSummary } from '@lumicore
 import { AlertCircle, ChevronLeft, FileText, FolderKanban, Layers3, Users2 } from 'lucide-react';
 import Link from 'next/link';
 import { useQueryClient } from '@tanstack/react-query';
+import { useState } from 'react';
 
 import { useProject } from '@/hooks/use-project';
 import { useArchiveProject } from '@/hooks/use-archive-project';
 import { queryKeys } from '@/lib/query/query-keys';
 
+import { ProjectDocuments } from './project-documents';
 import { ProjectDetailSection } from './project-detail-section';
 import { ProjectStatusBadge } from './project-status-badge';
 import { useAuthStore } from '@/store/auth.store';
@@ -17,12 +19,14 @@ type ProjectDetailShellProps = Readonly<{
   id: number;
 }>;
 
+type ProjectDetailTab = 'Overview' | 'Tasks' | 'Team' | 'Documents';
+
 const detailTabs = [
   { label: 'Overview', icon: Layers3 },
   { label: 'Tasks', icon: FolderKanban },
   { label: 'Documents', icon: FileText },
   { label: 'Team', icon: Users2 },
-] as const;
+] satisfies { label: ProjectDetailTab; icon: typeof Layers3 }[];
 
 function LoadingState(): JSX.Element {
   return (
@@ -99,12 +103,28 @@ function DetailErrorPanel(): JSX.Element {
   );
 }
 
+function IntegrationPlaceholder({
+  title,
+  description,
+}: Readonly<{ title: string; description: string }>): JSX.Element {
+  return (
+    <section className="panel p-6 md:p-8">
+      <p className="text-xs font-semibold uppercase tracking-[0.24em] text-text-muted">
+        Coming soon
+      </p>
+      <h2 className="mt-2 text-2xl font-semibold text-text-primary">{title}</h2>
+      <p className="mt-2 max-w-2xl text-sm leading-6 text-text-secondary">{description}</p>
+    </section>
+  );
+}
+
 export function ProjectDetailShell({ id }: ProjectDetailShellProps): JSX.Element {
   const queryClient = useQueryClient();
   const { data, error, isError, isFetching, isLoading } = useProject(id);
   const { isLoading: isArchiving, error: archiveError, archiveProject } = useArchiveProject(id);
   const currentUser = useAuthStore((state) => state.currentUser);
   const isAdmin = currentUser?.roles.includes('Administraator') ?? false;
+  const [activeTab, setActiveTab] = useState<ProjectDetailTab>('Overview');
 
   // Optimistic cache read: show list-level summary while the detail fetch is in-flight
   const listData = queryClient.getQueryData<PaginatedResponse<ProjectSummary>>(queryKeys.projects.list());
@@ -194,9 +214,12 @@ export function ProjectDetailShell({ id }: ProjectDetailShellProps): JSX.Element
           <button
             key={label}
             type="button"
-            disabled
-            aria-disabled="true"
-            className="pill cursor-not-allowed opacity-70"
+            onClick={() => setActiveTab(label)}
+            className={`pill transition ${
+              activeTab === label
+                ? 'border-accent-200 bg-accent-50 text-accent-700'
+                : 'hover:border-border-strong hover:text-text-primary'
+            }`}
           >
             <Icon className="h-4 w-4" />
             {label}
@@ -204,7 +227,20 @@ export function ProjectDetailShell({ id }: ProjectDetailShellProps): JSX.Element
         ))}
       </div>
 
-      {data ? <ProjectDetailSection project={data} /> : null}
+      {data && activeTab === 'Overview' ? <ProjectDetailSection project={data} /> : null}
+      {data && activeTab === 'Documents' ? <ProjectDocuments projectId={data.id} /> : null}
+      {data && activeTab === 'Tasks' ? (
+        <IntegrationPlaceholder
+          title="Project tasks"
+          description="Task integration for this project detail view will be connected in a separate pass."
+        />
+      ) : null}
+      {data && activeTab === 'Team' ? (
+        <IntegrationPlaceholder
+          title="Project team"
+          description="Team assignments for this project detail view will be connected in a separate pass."
+        />
+      ) : null}
       {!data && (isLoading || isFetching) ? <DetailLoadingPanel /> : null}
       {!data && isError ? <DetailErrorPanel /> : null}
     </div>
