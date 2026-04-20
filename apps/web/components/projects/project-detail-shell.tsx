@@ -12,6 +12,7 @@ import { queryKeys } from '@/lib/query/query-keys';
 
 import { ProjectDocuments } from './project-documents';
 import { ProjectPhotos } from './project-photos';
+import { ProjectTasks } from './project-tasks';
 import { ProjectDetailSection } from './project-detail-section';
 import { ProjectStatusBadge } from './project-status-badge';
 import { useAuthStore } from '@/store/auth.store';
@@ -232,12 +233,7 @@ export function ProjectDetailShell({ id }: ProjectDetailShellProps): JSX.Element
       {data && activeTab === 'Overview' ? <ProjectDetailSection project={data} /> : null}
       {data && activeTab === 'Documents' ? <ProjectDocuments projectId={data.id} /> : null}
       {data && activeTab === 'Photos' ? <ProjectPhotos projectId={data.id} /> : null}
-      {data && activeTab === 'Tasks' ? (
-        <IntegrationPlaceholder
-          title="Project tasks"
-          description="Task integration for this project detail view will be connected in a separate pass."
-        />
-      ) : null}
+      {data && activeTab === 'Tasks' ? <ProjectTasks projectId={data.id} /> : null}
       {data && activeTab === 'Team' ? (
         <IntegrationPlaceholder
           title="Project team"
