@@ -17,6 +17,7 @@ import { EmployeeGroup } from '@lumicore/shared-types';
 import { PrismaService } from '../database/prisma.service';
 import {
   buildPresignedUploadUrl,
+  buildSignedReadUrl,
   generateS3Key,
 } from '../common/s3.helper';
 import { CreateInternalDocumentDto } from './dto/create-internal-document.dto';
