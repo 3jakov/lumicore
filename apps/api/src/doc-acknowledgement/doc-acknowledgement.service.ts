@@ -362,39 +362,44 @@ export class DocAcknowledgementService {
 
     const now = new Date();
 
-    return documents.map((doc) => {
-      // Find earliest due_date from all assignments covering this doc+employee
-      const relevantAssignments = assignments.filter(
-        (a) => a.document_id === doc.id,
-      );
-      let earliestDueDate: Date | null = null;
-      for (const a of relevantAssignments) {
-        if (a.due_date !== null) {
-          if (earliestDueDate === null || a.due_date < earliestDueDate) {
-            earliestDueDate = a.due_date;
+    return Promise.all(
+      documents.map(async (doc) => {
+        // Find earliest due_date from all assignments covering this doc+employee
+        const relevantAssignments = assignments.filter(
+          (a) => a.document_id === doc.id,
+        );
+        let earliestDueDate: Date | null = null;
+        for (const a of relevantAssignments) {
+          if (a.due_date !== null) {
+            if (earliestDueDate === null || a.due_date < earliestDueDate) {
+              earliestDueDate = a.due_date;
+            }
           }
         }
-      }
 
-      const ack = ackMap.get(`${doc.id}-${doc.version}`);
-      const acknowledged = ack !== undefined;
-      const overdue =
-        !acknowledged &&
-        earliestDueDate !== null &&
-        earliestDueDate < now;
+        const ack = ackMap.get(`${doc.id}-${doc.version}`);
+        const acknowledged = ack !== undefined;
+        const overdue =
+          !acknowledged &&
+          earliestDueDate !== null &&
+          earliestDueDate < now;
 
-      return {
-        document_id: doc.id,
-        title: doc.title,
-        category: doc.category,
-        s3_key: doc.s3_key,
-        version: doc.version,
-        acknowledged,
-        acknowledged_at: ack ? ack.acknowledged_at.toISOString() : null,
-        due_date: earliestDueDate ? earliestDueDate.toISOString() : null,
-        overdue,
-      };
-    });
+        const download_url = (await buildSignedReadUrl(doc.s3_key)) ?? '';
+
+        return {
+          document_id: doc.id,
+          title: doc.title,
+          category: doc.category,
+          s3_key: doc.s3_key,
+          download_url,
+          version: doc.version,
+          acknowledged,
+          acknowledged_at: ack ? ack.acknowledged_at.toISOString() : null,
+          due_date: earliestDueDate ? earliestDueDate.toISOString() : null,
+          overdue,
+        };
+      }),
+    );
   }
 
   // ─── Acknowledge ──────────────────────────────────────────────────────────

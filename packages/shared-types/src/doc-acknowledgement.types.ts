@@ -85,6 +85,8 @@ export interface MyDocumentEntry {
   title: string;
   category: string | null;
   s3_key: string;
+  /** Signed S3 GET URL — valid for 15 minutes. Use for reading the document. */
+  download_url: string;
   version: number;
   acknowledged: boolean;
   acknowledged_at: string | null;
