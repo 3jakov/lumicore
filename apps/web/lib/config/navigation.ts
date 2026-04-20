@@ -1,37 +1,44 @@
 import type { Route } from 'next';
 
+import type { DictionaryKey } from '@/lib/i18n';
+
 export type NavItem = {
   href: Route;
-  label: string;
+  labelKey: DictionaryKey;
   icon: 'dashboard' | 'documents' | 'projects' | 'settings' | 'tasks' | 'team' | 'time' | 'tools';
-  badge?: string;
+  badgeKey?: DictionaryKey;
 };
 
 export type NavSection = {
-  title: string;
+  titleKey: DictionaryKey;
   items: NavItem[];
 };
 
 export const navSections: NavSection[] = [
   {
-    title: 'Workspaces',
+    titleKey: 'nav.sections.workspaces',
     items: [
-      { href: '/dashboard', label: 'Dashboard', icon: 'dashboard' },
-      { href: '/projects', label: 'Projects', icon: 'projects' },
-      { href: '/tasks', label: 'Tasks', icon: 'tasks' },
-      { href: '/time', label: 'Time tracking', icon: 'time' },
-      { href: '/team/praegu', label: 'Praegu', icon: 'team' },
-      { href: '/tools', label: 'Tools', icon: 'tools' },
-      { href: '/documents', label: 'My documents', icon: 'documents', badge: 'Ack' },
+      { href: '/dashboard', labelKey: 'nav.dashboard', icon: 'dashboard' },
+      { href: '/projects', labelKey: 'nav.projects', icon: 'projects' },
+      { href: '/tasks', labelKey: 'nav.tasks', icon: 'tasks' },
+      { href: '/time', labelKey: 'nav.time', icon: 'time' },
+      { href: '/team/praegu', labelKey: 'nav.praegu', icon: 'team' },
+      { href: '/tools', labelKey: 'nav.tools', icon: 'tools' },
+      {
+        href: '/documents',
+        labelKey: 'nav.documents',
+        icon: 'documents',
+        badgeKey: 'nav.acknowledgementBadge',
+      },
     ],
   },
   {
-    title: 'Administration',
+    titleKey: 'nav.sections.administration',
     items: [
-      { href: '/team/people', label: 'People', icon: 'team' },
-      { href: '/team/timesheet', label: 'Timesheet', icon: 'time' },
-      { href: '/team/reports', label: 'Reports', icon: 'team' },
-      { href: '/settings/profile', label: 'Settings', icon: 'settings' },
+      { href: '/team/people', labelKey: 'nav.people', icon: 'team' },
+      { href: '/team/timesheet', labelKey: 'nav.timesheet', icon: 'time' },
+      { href: '/team/reports', labelKey: 'nav.reports', icon: 'team' },
+      { href: '/settings/profile', labelKey: 'nav.settings', icon: 'settings' },
     ],
   },
 ];

@@ -6,6 +6,7 @@ import Link from 'next/link';
 import type { ProjectSummary } from '@lumicore/shared-types';
 
 import { useProjects } from '@/hooks/use-projects';
+import { useTranslation } from '@/hooks/use-translation';
 
 import { ProjectStatusBadge } from './project-status-badge';
 
@@ -55,30 +56,34 @@ function LoadingState(): JSX.Element {
 }
 
 function ErrorState({ onRetry }: { onRetry: () => void }): JSX.Element {
+  const { t } = useTranslation();
+
   return (
     <div className="panel flex flex-col items-center gap-4 py-16 text-center">
       <AlertCircle className="h-8 w-8 text-red-400" />
       <div>
-        <p className="font-semibold text-text-primary">Failed to load projects</p>
-        <p className="mt-1 text-sm text-text-secondary">Check your connection and try again.</p>
+        <p className="font-semibold text-text-primary">{t('projects.failedToLoad')}</p>
+        <p className="mt-1 text-sm text-text-secondary">{t('common.checkConnection')}</p>
       </div>
       <button
         onClick={onRetry}
         className="rounded-2xl border border-border-subtle bg-surface-1 px-4 py-2 text-sm font-semibold text-text-secondary transition hover:bg-brand-50 hover:text-text-primary"
       >
-        Try again
+        {t('common.retry')}
       </button>
     </div>
   );
 }
 
 function EmptyState(): JSX.Element {
+  const { t } = useTranslation();
+
   return (
     <div className="panel flex flex-col items-center gap-4 py-16 text-center">
       <FolderOpen className="h-8 w-8 text-text-muted" />
       <div>
-        <p className="font-semibold text-text-primary">No projects yet</p>
-        <p className="mt-1 text-sm text-text-secondary">Projects will appear here once created.</p>
+        <p className="font-semibold text-text-primary">{t('projects.emptyTitle')}</p>
+        <p className="mt-1 text-sm text-text-secondary">{t('projects.emptyDescription')}</p>
       </div>
     </div>
   );
@@ -87,6 +92,7 @@ function EmptyState(): JSX.Element {
 // ─── List ─────────────────────────────────────────────────────────────────────
 
 export function ProjectsList(): JSX.Element {
+  const { t } = useTranslation();
   const { data, isLoading, isError, refetch } = useProjects();
 
   if (isLoading) return <LoadingState />;
@@ -99,8 +105,10 @@ export function ProjectsList(): JSX.Element {
   return (
     <div className="space-y-4">
       <p className="text-sm text-text-muted">
-        {data?.meta.total ?? projects.length} project
-        {(data?.meta.total ?? projects.length) !== 1 ? 's' : ''}
+        {data?.meta.total ?? projects.length}{' '}
+        {(data?.meta.total ?? projects.length) === 1
+          ? t('projects.countSingular')
+          : t('projects.countPlural')}
       </p>
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         {projects.map((project) => (

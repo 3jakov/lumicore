@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 
 import { Language, TimeFormat } from '@lumicore/shared-types';
 
+import { useTranslation } from '@/hooks/use-translation';
 import { useUpdateProfile } from '@/hooks/use-update-profile';
 import { useAuthStore } from '@/store/auth.store';
 
@@ -48,6 +49,7 @@ function ToggleGroup<T extends string>({
 // ─── Profile form ─────────────────────────────────────────────────────────────
 
 export function ProfileForm(): JSX.Element | null {
+  const { t } = useTranslation();
   const currentUser = useAuthStore((s) => s.currentUser);
   const { isLoading, isSuccess, error, updateProfile } = useUpdateProfile();
 
@@ -114,18 +116,18 @@ export function ProfileForm(): JSX.Element | null {
       {/* ── Edit form ────────────────────────────────────────────────────────── */}
       <section className="panel p-6 md:p-8">
         <p className="text-xs font-semibold uppercase tracking-[0.24em] text-text-muted">
-          Settings
+          {t('settings.title')}
         </p>
-        <h2 className="mt-2 text-2xl font-semibold">Profile</h2>
+        <h2 className="mt-2 text-2xl font-semibold">{t('settings.profile.title')}</h2>
         <p className="mt-1 text-sm text-text-secondary">
-          Your personal preferences. Changes apply immediately after saving.
+          {t('settings.profile.formDescription')}
         </p>
 
         <form onSubmit={handleSubmit} className="mt-6 max-w-sm space-y-5">
           {/* Full name */}
           <div className="space-y-1.5">
             <label className="text-sm font-semibold text-text-primary" htmlFor="full-name">
-              Full name
+              {t('settings.profile.fullName')}
             </label>
             <input
               id="full-name"
@@ -133,14 +135,16 @@ export function ProfileForm(): JSX.Element | null {
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
               disabled={isLoading}
-              placeholder="Your name"
+              placeholder={t('settings.profile.namePlaceholder')}
               className={inputCls}
             />
           </div>
 
           {/* Language */}
           <div className="space-y-1.5">
-            <p className="text-sm font-semibold text-text-primary">Language</p>
+            <p className="text-sm font-semibold text-text-primary">
+              {t('settings.profile.language')}
+            </p>
             <ToggleGroup
               value={language}
               onChange={setLanguage}
@@ -154,7 +158,9 @@ export function ProfileForm(): JSX.Element | null {
 
           {/* Time format */}
           <div className="space-y-1.5">
-            <p className="text-sm font-semibold text-text-primary">Time format</p>
+            <p className="text-sm font-semibold text-text-primary">
+              {t('settings.profile.timeFormat')}
+            </p>
             <ToggleGroup
               value={timeFormat}
               onChange={setTimeFormat}
@@ -175,7 +181,7 @@ export function ProfileForm(): JSX.Element | null {
           {isSuccess && (
             <p className="flex items-center gap-2 rounded-xl bg-accent-50 px-4 py-3 text-sm font-medium text-accent-700">
               <CheckCircle2 className="h-4 w-4 shrink-0" />
-              Saved
+              {t('common.saved')}
             </p>
           )}
 
@@ -185,7 +191,7 @@ export function ProfileForm(): JSX.Element | null {
             disabled={isLoading || !trimmedName || !isDirty}
             className="w-full rounded-2xl bg-accent-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-accent-700 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {isLoading ? 'Saving…' : 'Save changes'}
+            {isLoading ? t('common.saving') : t('common.saveChanges')}
           </button>
         </form>
       </section>
