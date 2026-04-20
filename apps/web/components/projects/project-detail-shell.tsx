@@ -1,7 +1,7 @@
 'use client';
 
 import type { PaginatedResponse, ProjectDetail, ProjectSummary } from '@lumicore/shared-types';
-import { AlertCircle, ChevronLeft, FileText, FolderKanban, Image, Layers3, Users2 } from 'lucide-react';
+import { AlertCircle, ChevronLeft, FileText, FolderKanban, Image as ImageIcon, Layers3, Users2 } from 'lucide-react';
 import Link from 'next/link';
 import { useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
@@ -26,7 +26,7 @@ const detailTabs = [
   { label: 'Overview', icon: Layers3 },
   { label: 'Tasks', icon: FolderKanban },
   { label: 'Documents', icon: FileText },
-  { label: 'Photos', icon: Image },
+  { label: 'Photos', icon: ImageIcon },
   { label: 'Team', icon: Users2 },
 ] satisfies { label: ProjectDetailTab; icon: typeof Layers3 }[];
 
