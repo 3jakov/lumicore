@@ -45,6 +45,8 @@ export const queryKeys = {
   },
   docAck: {
     myDocuments: ['doc-ack', 'my'] as const,
+    adminList: ['doc-ack', 'admin', 'list'] as const,
+    adminStatus: (id: number) => ['doc-ack', 'admin', 'status', id] as const,
   },
   settings: {
     roles: ['settings', 'roles'] as const,
