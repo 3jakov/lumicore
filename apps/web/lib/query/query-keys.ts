@@ -43,6 +43,9 @@ export const queryKeys = {
   documents: {
     list: (projectId: number) => ['documents', 'list', projectId] as const,
   },
+  docAck: {
+    myDocuments: ['doc-ack', 'my'] as const,
+  },
   settings: {
     roles: ['settings', 'roles'] as const,
     tags: ['settings', 'tags'] as const,
