@@ -12,6 +12,7 @@ import { queryKeys } from '@/lib/query/query-keys';
 
 import { ProjectDocuments } from './project-documents';
 import { ProjectPhotos } from './project-photos';
+import { ProjectTeam } from './project-team';
 import { ProjectTasks } from './project-tasks';
 import { ProjectDetailSection } from './project-detail-section';
 import { ProjectStatusBadge } from './project-status-badge';
@@ -102,21 +103,6 @@ function DetailErrorPanel(): JSX.Element {
       <p className="text-sm text-text-secondary">
         Try refreshing the page or return to the projects list and reopen the project.
       </p>
-    </section>
-  );
-}
-
-function IntegrationPlaceholder({
-  title,
-  description,
-}: Readonly<{ title: string; description: string }>): JSX.Element {
-  return (
-    <section className="panel p-6 md:p-8">
-      <p className="text-xs font-semibold uppercase tracking-[0.24em] text-text-muted">
-        Coming soon
-      </p>
-      <h2 className="mt-2 text-2xl font-semibold text-text-primary">{title}</h2>
-      <p className="mt-2 max-w-2xl text-sm leading-6 text-text-secondary">{description}</p>
     </section>
   );
 }
@@ -234,12 +220,7 @@ export function ProjectDetailShell({ id }: ProjectDetailShellProps): JSX.Element
       {data && activeTab === 'Documents' ? <ProjectDocuments projectId={data.id} /> : null}
       {data && activeTab === 'Photos' ? <ProjectPhotos projectId={data.id} /> : null}
       {data && activeTab === 'Tasks' ? <ProjectTasks projectId={data.id} /> : null}
-      {data && activeTab === 'Team' ? (
-        <IntegrationPlaceholder
-          title="Project team"
-          description="Team assignments for this project detail view will be connected in a separate pass."
-        />
-      ) : null}
+      {data && activeTab === 'Team' ? <ProjectTeam project={data} /> : null}
       {!data && (isLoading || isFetching) ? <DetailLoadingPanel /> : null}
       {!data && isError ? <DetailErrorPanel /> : null}
     </div>
