@@ -48,6 +48,9 @@ export const queryKeys = {
     adminList: ['doc-ack', 'admin', 'list'] as const,
     adminStatus: (id: number) => ['doc-ack', 'admin', 'status', id] as const,
   },
+  photos: {
+    list: (projectId: number) => ['photos', 'list', projectId] as const,
+  },
   settings: {
     roles: ['settings', 'roles'] as const,
     tags: ['settings', 'tags'] as const,

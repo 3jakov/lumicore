@@ -1,7 +1,7 @@
 'use client';
 
 import type { PaginatedResponse, ProjectDetail, ProjectSummary } from '@lumicore/shared-types';
-import { AlertCircle, ChevronLeft, FileText, FolderKanban, Layers3, Users2 } from 'lucide-react';
+import { AlertCircle, ChevronLeft, FileText, FolderKanban, Image, Layers3, Users2 } from 'lucide-react';
 import Link from 'next/link';
 import { useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
@@ -11,6 +11,7 @@ import { useArchiveProject } from '@/hooks/use-archive-project';
 import { queryKeys } from '@/lib/query/query-keys';
 
 import { ProjectDocuments } from './project-documents';
+import { ProjectPhotos } from './project-photos';
 import { ProjectDetailSection } from './project-detail-section';
 import { ProjectStatusBadge } from './project-status-badge';
 import { useAuthStore } from '@/store/auth.store';
@@ -19,12 +20,13 @@ type ProjectDetailShellProps = Readonly<{
   id: number;
 }>;
 
-type ProjectDetailTab = 'Overview' | 'Tasks' | 'Team' | 'Documents';
+type ProjectDetailTab = 'Overview' | 'Tasks' | 'Team' | 'Documents' | 'Photos';
 
 const detailTabs = [
   { label: 'Overview', icon: Layers3 },
   { label: 'Tasks', icon: FolderKanban },
   { label: 'Documents', icon: FileText },
+  { label: 'Photos', icon: Image },
   { label: 'Team', icon: Users2 },
 ] satisfies { label: ProjectDetailTab; icon: typeof Layers3 }[];
 
@@ -229,6 +231,7 @@ export function ProjectDetailShell({ id }: ProjectDetailShellProps): JSX.Element
 
       {data && activeTab === 'Overview' ? <ProjectDetailSection project={data} /> : null}
       {data && activeTab === 'Documents' ? <ProjectDocuments projectId={data.id} /> : null}
+      {data && activeTab === 'Photos' ? <ProjectPhotos projectId={data.id} /> : null}
       {data && activeTab === 'Tasks' ? (
         <IntegrationPlaceholder
           title="Project tasks"
