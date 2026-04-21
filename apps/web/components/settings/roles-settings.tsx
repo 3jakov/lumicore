@@ -7,6 +7,7 @@ import { useState } from 'react';
 import { useCreateRole } from '@/hooks/use-create-role';
 import { useDeleteRole } from '@/hooks/use-delete-role';
 import { useRoles } from '@/hooks/use-roles';
+import { useTranslation } from '@/hooks/use-translation';
 import { useUpdateRole } from '@/hooks/use-update-role';
 import { useAuthStore } from '@/store/auth.store';
 
@@ -31,6 +32,7 @@ function RolesLoadingState(): JSX.Element {
 }
 
 export function RolesSettings(): JSX.Element {
+  const { t } = useTranslation();
   const currentUser = useAuthStore((state) => state.currentUser);
   const isAdmin = currentUser?.roles.includes('Administraator') ?? false;
   const { data, isLoading, isError, refetch } = useRoles();
@@ -75,7 +77,7 @@ export function RolesSettings(): JSX.Element {
   }
 
   async function handleDelete(roleId: number): Promise<void> {
-    if (!window.confirm('Delete this role?')) return;
+    if (!window.confirm(t('settings.roles.deleteConfirm'))) return;
     await deleteRole(roleId);
   }
 
@@ -86,9 +88,9 @@ export function RolesSettings(): JSX.Element {
       <section className="panel flex flex-col items-center gap-4 py-16 text-center">
         <AlertCircle className="h-8 w-8 text-red-500" />
         <div>
-          <p className="font-semibold text-text-primary">Failed to load roles</p>
+          <p className="font-semibold text-text-primary">{t('settings.roles.failedToLoad')}</p>
           <p className="mt-1 text-sm text-text-secondary">
-            Try again to reload the current role configuration.
+            {t('settings.roles.failedDescription')}
           </p>
         </div>
         <button
@@ -96,7 +98,7 @@ export function RolesSettings(): JSX.Element {
           onClick={() => void refetch()}
           className="rounded-2xl border border-border-subtle bg-surface-1 px-4 py-2 text-sm font-semibold text-text-secondary transition hover:border-border-strong hover:text-text-primary"
         >
-          Retry
+          {t('common.retry')}
         </button>
       </section>
     );
@@ -112,9 +114,9 @@ export function RolesSettings(): JSX.Element {
 
       {roles.length === 0 ? (
         <div className="panel py-12 text-center">
-          <p className="font-semibold text-text-primary">No roles configured</p>
+          <p className="font-semibold text-text-primary">{t('settings.roles.emptyTitle')}</p>
           <p className="mt-1 text-sm text-text-secondary">
-            Roles will appear here once they are created.
+            {t('settings.roles.emptyDescription')}
           </p>
         </div>
       ) : (
@@ -160,7 +162,7 @@ export function RolesSettings(): JSX.Element {
                         {role.name}
                       </button>
                       <p className="mt-1 text-sm text-text-secondary">
-                        Created {formatCreatedAt(role.created_at)}
+                        {t('settings.roles.created')} {formatCreatedAt(role.created_at)}
                       </p>
                     </>
                   )}
@@ -175,7 +177,7 @@ export function RolesSettings(): JSX.Element {
                         setDraftName(role.name);
                       }}
                       className="rounded-full border border-border-subtle bg-surface-1 p-2 text-text-secondary transition hover:border-border-strong hover:text-text-primary"
-                      aria-label={`Edit ${role.name}`}
+                      aria-label={`${t('settings.roles.editAria')} ${role.name}`}
                     >
                       <Pencil className="h-4 w-4" />
                     </button>
@@ -184,7 +186,7 @@ export function RolesSettings(): JSX.Element {
                       onMouseDown={(event) => event.preventDefault()}
                       onClick={() => void handleDelete(role.id)}
                       className="rounded-full border border-red-200 bg-red-50 p-2 text-red-600 transition hover:bg-red-100"
-                      aria-label={`Delete ${role.name}`}
+                      aria-label={`${t('settings.roles.deleteAria')} ${role.name}`}
                     >
                       <Trash2 className="h-4 w-4" />
                     </button>
@@ -205,7 +207,7 @@ export function RolesSettings(): JSX.Element {
               className="inline-flex items-center gap-2 rounded-full bg-brand-700 px-4 py-2 text-sm font-semibold text-text-inverse transition hover:bg-brand-800"
             >
               <Plus className="h-4 w-4" />
-              Add role
+              {t('settings.roles.add')}
             </button>
           ) : (
             <div className="flex flex-col gap-3 sm:flex-row">
@@ -229,7 +231,7 @@ export function RolesSettings(): JSX.Element {
                     setNewRoleName('');
                   }
                 }}
-                placeholder="Role name"
+                placeholder={t('settings.roles.namePlaceholder')}
                 className={inputCls}
               />
               <div className="flex gap-2">
@@ -238,7 +240,7 @@ export function RolesSettings(): JSX.Element {
                   onClick={() => void handleCreate()}
                   className="rounded-full bg-brand-700 px-4 py-2 text-sm font-semibold text-text-inverse transition hover:bg-brand-800"
                 >
-                  Save
+                  {t('common.save')}
                 </button>
                 <button
                   type="button"
@@ -248,7 +250,7 @@ export function RolesSettings(): JSX.Element {
                   }}
                   className="rounded-full border border-border-subtle bg-surface-1 px-4 py-2 text-sm font-semibold text-text-secondary transition hover:border-border-strong hover:text-text-primary"
                 >
-                  Cancel
+                  {t('common.cancel')}
                 </button>
               </div>
             </div>

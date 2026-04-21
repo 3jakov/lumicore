@@ -6,6 +6,7 @@ import { AlertCircle, Layers3 } from 'lucide-react';
 import type { ReactNode } from 'react';
 
 import { useTaskTemplates } from '@/hooks/use-task-templates';
+import { useTranslation } from '@/hooks/use-translation';
 
 function TemplateBadge({
   children,
@@ -31,13 +32,15 @@ function TemplateSection({
   title,
   templates,
 }: Readonly<{ title: string; templates: TaskTemplateSummary[] }>): JSX.Element {
+  const { t } = useTranslation();
+
   return (
     <section className="panel p-5">
       <h2 className="text-lg font-semibold text-text-primary">{title}</h2>
       <div className="mt-4 space-y-3">
         {templates.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-border-subtle bg-surface-1 px-4 py-8 text-center text-sm text-text-secondary">
-            No templates in this category.
+            {t('settings.templates.emptyCategory')}
           </div>
         ) : (
           templates.map((template) => (
@@ -50,12 +53,14 @@ function TemplateSection({
                   <p className="font-semibold text-text-primary">{template.name}</p>
                   <p className="mt-1 text-sm text-text-secondary">
                     {template.default_group
-                      ? `Default group: ${template.default_group}`
-                      : 'No default group'}
+                      ? `${t('settings.templates.defaultGroup')}: ${template.default_group}`
+                      : t('settings.templates.noDefaultGroup')}
                   </p>
                 </div>
                 <TemplateBadge tone={template.is_active ? 'success' : 'muted'}>
-                  {template.is_active ? 'Active' : 'Inactive'}
+                  {template.is_active
+                    ? t('settings.templates.active')
+                    : t('settings.templates.inactive')}
                 </TemplateBadge>
               </div>
             </div>
@@ -84,6 +89,7 @@ function TemplatesLoadingState(): JSX.Element {
 }
 
 export function TemplatesSettings(): JSX.Element {
+  const { t } = useTranslation();
   const { data, isLoading, isError, refetch } = useTaskTemplates();
 
   if (isLoading) return <TemplatesLoadingState />;
@@ -93,9 +99,9 @@ export function TemplatesSettings(): JSX.Element {
       <section className="panel flex flex-col items-center gap-4 py-16 text-center">
         <AlertCircle className="h-8 w-8 text-red-500" />
         <div>
-          <p className="font-semibold text-text-primary">Failed to load task templates</p>
+          <p className="font-semibold text-text-primary">{t('settings.templates.failedToLoad')}</p>
           <p className="mt-1 text-sm text-text-secondary">
-            Try again to reload the current template catalogue.
+            {t('settings.templates.failedDescription')}
           </p>
         </div>
         <button
@@ -103,7 +109,7 @@ export function TemplatesSettings(): JSX.Element {
           onClick={() => void refetch()}
           className="rounded-2xl border border-border-subtle bg-surface-1 px-4 py-2 text-sm font-semibold text-text-secondary transition hover:border-border-strong hover:text-text-primary"
         >
-          Retry
+          {t('common.retry')}
         </button>
       </section>
     );
@@ -121,17 +127,20 @@ export function TemplatesSettings(): JSX.Element {
         </div>
         <div>
           <p className="font-semibold text-text-primary">
-            Task templates are configured by the system administrator.
+            {t('settings.templates.systemManagedTitle')}
           </p>
           <p className="mt-1 text-sm text-text-secondary">
-            Templates are seeded by the system and available here as a read-only reference.
+            {t('settings.templates.systemManagedDescription')}
           </p>
         </div>
       </section>
 
       <div className="grid gap-4 xl:grid-cols-2">
-        <TemplateSection title="Production" templates={productionTemplates} />
-        <TemplateSection title="General" templates={generalTemplates} />
+        <TemplateSection
+          title={t('settings.templates.production')}
+          templates={productionTemplates}
+        />
+        <TemplateSection title={t('settings.templates.general')} templates={generalTemplates} />
       </div>
     </div>
   );

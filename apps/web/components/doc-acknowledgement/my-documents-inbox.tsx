@@ -5,6 +5,7 @@ import { AlertCircle, CheckCircle2, ExternalLink, FileCheck2 } from 'lucide-reac
 
 import { useAcknowledgeDocument } from '@/hooks/use-acknowledge-document';
 import { useMyDocuments } from '@/hooks/use-my-documents';
+import { useTranslation } from '@/hooks/use-translation';
 
 type DocumentGroup = {
   title: string;
@@ -32,35 +33,35 @@ function DocumentSkeleton(): JSX.Element {
 }
 
 function ErrorState({ onRetry }: Readonly<{ onRetry: () => void }>): JSX.Element {
+  const { t } = useTranslation();
+
   return (
     <section className="panel flex flex-col items-center gap-4 py-16 text-center">
       <AlertCircle className="h-8 w-8 text-red-500" />
       <div>
-        <p className="font-semibold text-text-primary">Failed to load documents</p>
-        <p className="mt-1 text-sm text-text-secondary">
-          Try again to reload documents assigned to you.
-        </p>
+        <p className="font-semibold text-text-primary">{t('docAck.failedToLoad')}</p>
+        <p className="mt-1 text-sm text-text-secondary">{t('docAck.failedDescription')}</p>
       </div>
       <button
         type="button"
         onClick={onRetry}
         className="rounded-2xl border border-border-subtle bg-surface-1 px-4 py-2 text-sm font-semibold text-text-secondary transition hover:border-border-strong hover:text-text-primary"
       >
-        Retry
+        {t('common.retry')}
       </button>
     </section>
   );
 }
 
 function EmptyState(): JSX.Element {
+  const { t } = useTranslation();
+
   return (
     <section className="panel flex flex-col items-center gap-4 py-16 text-center">
       <FileCheck2 className="h-8 w-8 text-text-muted" />
       <div>
-        <p className="font-semibold text-text-primary">No documents assigned to you yet</p>
-        <p className="mt-1 text-sm text-text-secondary">
-          Documents that require your acknowledgement will appear here.
-        </p>
+        <p className="font-semibold text-text-primary">{t('docAck.emptyTitle')}</p>
+        <p className="mt-1 text-sm text-text-secondary">{t('docAck.emptyDescription')}</p>
       </div>
     </section>
   );
@@ -77,6 +78,7 @@ function DocumentCard({
   disabled: boolean;
   onAcknowledge: (documentId: number) => void;
 }>): JSX.Element {
+  const { t } = useTranslation();
   const isAcknowledged = document.acknowledged;
   const borderTone =
     tone === 'danger'
@@ -96,7 +98,7 @@ function DocumentCard({
             {isAcknowledged ? (
               <span className="pill border-emerald-200 bg-emerald-50 text-xs text-emerald-800">
                 <CheckCircle2 className="h-3.5 w-3.5" />
-                Acknowledged
+                {t('docAck.acknowledged')}
               </span>
             ) : null}
           </div>
@@ -104,14 +106,14 @@ function DocumentCard({
           <div className="mt-3 space-y-1 text-sm text-text-secondary">
             {document.due_date && document.overdue ? (
               <p className="font-semibold text-red-600">
-                Due {formatDate(document.due_date)} — overdue
+                {t('docAck.due')} {formatDate(document.due_date)} - {t('docAck.overdue')}
               </p>
             ) : null}
             {document.due_date && !document.overdue && !document.acknowledged ? (
-              <p>Due {formatDate(document.due_date)}</p>
+              <p>{t('docAck.due')} {formatDate(document.due_date)}</p>
             ) : null}
             {document.acknowledged_at ? (
-              <p>Acknowledged {formatDate(document.acknowledged_at)}</p>
+              <p>{t('docAck.acknowledged')} {formatDate(document.acknowledged_at)}</p>
             ) : null}
           </div>
         </div>
@@ -124,7 +126,7 @@ function DocumentCard({
             className="inline-flex items-center gap-2 rounded-full border border-border-subtle bg-white px-4 py-2 text-sm font-semibold text-text-secondary transition hover:border-border-strong hover:text-text-primary"
           >
             <ExternalLink className="h-4 w-4" />
-            Open document
+            {t('docAck.openDocument')}
           </a>
           {!isAcknowledged ? (
             <button
@@ -133,7 +135,7 @@ function DocumentCard({
               onClick={() => onAcknowledge(document.document_id)}
               className="rounded-full bg-brand-700 px-4 py-2 text-sm font-semibold text-text-inverse transition hover:bg-brand-800 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {disabled ? 'Acknowledging...' : 'Acknowledge'}
+              {disabled ? t('docAck.acknowledging') : t('docAck.acknowledge')}
             </button>
           ) : null}
         </div>
@@ -175,13 +177,12 @@ function DocumentGroupSection({
 }
 
 export function MyDocumentsInbox(): JSX.Element {
+  const { t } = useTranslation();
   const { data, isLoading, isError, refetch } = useMyDocuments();
   const { isAcknowledging, ackError, acknowledge } = useAcknowledgeDocument();
 
   async function handleAcknowledge(documentId: number): Promise<void> {
-    const confirmed = window.confirm(
-      'Confirm that you have read and understood this document?',
-    );
+    const confirmed = window.confirm(t('docAck.confirmAcknowledge'));
     if (!confirmed) return;
 
     await acknowledge(documentId);
@@ -195,20 +196,20 @@ export function MyDocumentsInbox(): JSX.Element {
 
   const groups: DocumentGroup[] = [
     {
-      title: 'Overdue',
-      description: 'These documents are past their due date and still need your acknowledgement.',
+      title: t('docAck.groups.overdue.title'),
+      description: t('docAck.groups.overdue.description'),
       tone: 'danger',
       documents: documents.filter((document) => document.overdue),
     },
     {
-      title: 'Pending',
-      description: 'Read these documents and confirm acknowledgement when ready.',
+      title: t('docAck.groups.pending.title'),
+      description: t('docAck.groups.pending.description'),
       tone: 'default',
       documents: documents.filter((document) => !document.acknowledged && !document.overdue),
     },
     {
-      title: 'Acknowledged',
-      description: 'Documents you have already acknowledged for the current version.',
+      title: t('docAck.groups.acknowledged.title'),
+      description: t('docAck.groups.acknowledged.description'),
       tone: 'muted',
       documents: documents.filter((document) => document.acknowledged),
     },

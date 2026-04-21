@@ -8,6 +8,7 @@ import { useState } from 'react';
 import { useCreateTag } from '@/hooks/use-create-tag';
 import { useDeleteTag } from '@/hooks/use-delete-tag';
 import { useProjectTags, useTaskTags } from '@/hooks/use-tags';
+import { useTranslation } from '@/hooks/use-translation';
 import { useUpdateTag } from '@/hooks/use-update-tag';
 import { useAuthStore } from '@/store/auth.store';
 
@@ -39,6 +40,7 @@ function TagsLoadingState(): JSX.Element {
 }
 
 function TagSection({ entityType, title, tags, isAdmin }: Readonly<TagSectionProps>): JSX.Element {
+  const { t } = useTranslation();
   const { isLoading: isCreating, error: createError, createTag } = useCreateTag();
   const { isLoading: isUpdating, error: updateError, updateTag } = useUpdateTag();
   const { isLoading: isDeleting, error: deleteError, deleteTag } = useDeleteTag();
@@ -108,8 +110,8 @@ function TagSection({ entityType, title, tags, isAdmin }: Readonly<TagSectionPro
           <h2 className="text-lg font-semibold text-text-primary">{title}</h2>
           <p className="mt-1 text-sm text-text-secondary">
             {entityType === TagEntityType.project
-              ? 'Tags used to categorise project records.'
-              : 'Tags used to categorise task records.'}
+              ? t('settings.tags.projectDescription')
+              : t('settings.tags.taskDescription')}
           </p>
         </div>
         {isAdmin && !isAdding ? (
@@ -119,7 +121,7 @@ function TagSection({ entityType, title, tags, isAdmin }: Readonly<TagSectionPro
             className="inline-flex items-center gap-2 rounded-full bg-brand-700 px-4 py-2 text-sm font-semibold text-text-inverse transition hover:bg-brand-800"
           >
             <Plus className="h-4 w-4" />
-            Add tag
+            {t('settings.tags.add')}
           </button>
         ) : null}
       </div>
@@ -137,7 +139,7 @@ function TagSection({ entityType, title, tags, isAdmin }: Readonly<TagSectionPro
               autoFocus
               value={newName}
               onChange={(event) => setNewName(event.target.value)}
-              placeholder="Tag name"
+              placeholder={t('settings.tags.namePlaceholder')}
               className={inputCls}
             />
             <input
@@ -153,7 +155,7 @@ function TagSection({ entityType, title, tags, isAdmin }: Readonly<TagSectionPro
               onClick={() => void handleCreate()}
               className="rounded-full bg-brand-700 px-4 py-2 text-sm font-semibold text-text-inverse transition hover:bg-brand-800"
             >
-              Save
+              {t('common.save')}
             </button>
             <button
               type="button"
@@ -164,7 +166,7 @@ function TagSection({ entityType, title, tags, isAdmin }: Readonly<TagSectionPro
               }}
               className="rounded-full border border-border-subtle bg-surface-1 px-4 py-2 text-sm font-semibold text-text-secondary transition hover:border-border-strong hover:text-text-primary"
             >
-              Cancel
+              {t('common.cancel')}
             </button>
           </div>
         </div>
@@ -172,7 +174,7 @@ function TagSection({ entityType, title, tags, isAdmin }: Readonly<TagSectionPro
 
       {tags.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-border-subtle bg-surface-1 px-4 py-8 text-center text-sm text-text-secondary">
-          No tags configured for this entity type yet.
+          {t('settings.tags.emptyForType')}
         </div>
       ) : (
         <div className="flex flex-wrap gap-3">
@@ -181,7 +183,10 @@ function TagSection({ entityType, title, tags, isAdmin }: Readonly<TagSectionPro
 
             if (isEditing) {
               return (
-                <div key={tag.id} className="min-w-[16rem] rounded-2xl border border-border-subtle bg-surface-1 p-3">
+                <div
+                  key={tag.id}
+                  className="min-w-[16rem] rounded-2xl border border-border-subtle bg-surface-1 p-3"
+                >
                   <div className="flex flex-col gap-3 sm:flex-row">
                     <input
                       autoFocus
@@ -236,7 +241,7 @@ function TagSection({ entityType, title, tags, isAdmin }: Readonly<TagSectionPro
                     type="button"
                     onClick={() => void deleteTag(tag.id, entityType)}
                     className="rounded-full bg-black/10 p-1 text-white transition hover:bg-black/20"
-                    aria-label={`Delete ${tag.name}`}
+                    aria-label={`${t('settings.tags.deleteAria')} ${tag.name}`}
                   >
                     <Trash2 className="h-3.5 w-3.5" />
                   </button>
@@ -251,6 +256,7 @@ function TagSection({ entityType, title, tags, isAdmin }: Readonly<TagSectionPro
 }
 
 export function TagsSettings(): JSX.Element {
+  const { t } = useTranslation();
   const currentUser = useAuthStore((state) => state.currentUser);
   const isAdmin = currentUser?.roles.includes('Administraator') ?? false;
   const projectTagsQuery = useProjectTags();
@@ -265,9 +271,9 @@ export function TagsSettings(): JSX.Element {
       <section className="panel flex flex-col items-center gap-4 py-16 text-center">
         <AlertCircle className="h-8 w-8 text-red-500" />
         <div>
-          <p className="font-semibold text-text-primary">Failed to load tags</p>
+          <p className="font-semibold text-text-primary">{t('settings.tags.failedToLoad')}</p>
           <p className="mt-1 text-sm text-text-secondary">
-            Try again to reload project and task tags.
+            {t('settings.tags.failedDescription')}
           </p>
         </div>
         <button
@@ -278,7 +284,7 @@ export function TagsSettings(): JSX.Element {
           }}
           className="rounded-2xl border border-border-subtle bg-surface-1 px-4 py-2 text-sm font-semibold text-text-secondary transition hover:border-border-strong hover:text-text-primary"
         >
-          Retry
+          {t('common.retry')}
         </button>
       </section>
     );
@@ -288,13 +294,13 @@ export function TagsSettings(): JSX.Element {
     <div className="grid gap-4 xl:grid-cols-2">
       <TagSection
         entityType={TagEntityType.project}
-        title="Project tags"
+        title={t('settings.tags.projectTitle')}
         tags={projectTagsQuery.data ?? []}
         isAdmin={isAdmin}
       />
       <TagSection
         entityType={TagEntityType.task}
-        title="Task tags"
+        title={t('settings.tags.taskTitle')}
         tags={taskTagsQuery.data ?? []}
         isAdmin={isAdmin}
       />
