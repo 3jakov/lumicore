@@ -1,13 +1,18 @@
+'use client';
+
 import { PageHeader } from '@/components/layout/page-header';
 import { TimeDashboard } from '@/components/time/time-dashboard';
+import { useTranslation } from '@/hooks/use-translation';
 
 export default function TimePage(): JSX.Element {
+  const { t } = useTranslation();
+
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="Time Tracking"
-        title="My time"
-        description="Track your own work with the real Phase 1 backend: start, pause, resume, stop, and review recent entries without waiting for realtime infrastructure."
+        eyebrow={t('time.eyebrow')}
+        title={t('time.title')}
+        description={t('time.description')}
       />
       <TimeDashboard />
     </div>

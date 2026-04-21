@@ -3,18 +3,21 @@
 import type { TimeEntrySummary } from '@lumicore/shared-types';
 import type { ReactNode } from 'react';
 
+import { useTranslation } from '@/hooks/use-translation';
+import type { DictionaryKey } from '@/lib/i18n';
+
 import { formatDateTime, formatDuration } from './time-utils';
 
 type TimeEntriesListProps = Readonly<{
   entries: TimeEntrySummary[];
 }>;
 
-function getStatusLabel(entry: TimeEntrySummary): string {
+function getStatusKey(entry: TimeEntrySummary): DictionaryKey {
   if (entry.ended_at === null) {
-    return entry.is_paused ? 'Paused' : 'Running';
+    return entry.is_paused ? 'time.paused' : 'time.running';
   }
 
-  return 'Stopped';
+  return 'time.stopped';
 }
 
 function Badge({ children }: Readonly<{ children: ReactNode }>): JSX.Element {
@@ -26,15 +29,19 @@ function Badge({ children }: Readonly<{ children: ReactNode }>): JSX.Element {
 }
 
 export function TimeEntriesList({ entries }: TimeEntriesListProps): JSX.Element {
+  const { t } = useTranslation();
+
   if (entries.length === 0) {
     return (
       <section className="panel p-6 md:p-8">
         <p className="text-xs font-semibold uppercase tracking-[0.24em] text-text-muted">
-          Recent entries
+          {t('time.recentEntries')}
         </p>
-        <h2 className="mt-2 text-2xl font-semibold text-text-primary">No time entries yet</h2>
+        <h2 className="mt-2 text-2xl font-semibold text-text-primary">
+          {t('time.noEntriesTitle')}
+        </h2>
         <p className="mt-2 max-w-2xl text-sm leading-6 text-text-secondary">
-          Your recent work log will appear here after you start or add a time entry.
+          {t('time.noEntriesDescription')}
         </p>
       </section>
     );
@@ -43,7 +50,7 @@ export function TimeEntriesList({ entries }: TimeEntriesListProps): JSX.Element 
   return (
     <section className="panel p-6 md:p-8">
       <p className="text-xs font-semibold uppercase tracking-[0.24em] text-text-muted">
-        Recent entries
+        {t('time.recentEntries')}
       </p>
       <div className="mt-5 grid gap-4">
         {entries.map((entry) => (
@@ -54,27 +61,44 @@ export function TimeEntriesList({ entries }: TimeEntriesListProps): JSX.Element 
             <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
               <div className="space-y-2">
                 <div className="flex flex-wrap items-center gap-2">
-                  <Badge>{getStatusLabel(entry)}</Badge>
+                  <Badge>{t(getStatusKey(entry))}</Badge>
                   <Badge>{formatDuration(entry.duration_seconds)}</Badge>
-                  <Badge>Paused {formatDuration(entry.pause_duration_seconds)}</Badge>
-                  {entry.is_manual ? <Badge>Manual</Badge> : null}
-                  {entry.needs_review ? <Badge>Needs review</Badge> : null}
-                  {entry.is_confirmed ? <Badge>Confirmed</Badge> : null}
+                  <Badge>
+                    {t('time.paused')}{' '}
+                    {formatDuration(entry.pause_duration_seconds)}
+                  </Badge>
+                  {entry.is_manual ? <Badge>{t('time.manual')}</Badge> : null}
+                  {entry.needs_review ? <Badge>{t('time.needsReview')}</Badge> : null}
+                  {entry.is_confirmed ? <Badge>{t('time.confirmed')}</Badge> : null}
                 </div>
                 <p className="text-sm font-semibold text-text-primary">
-                  {entry.project_id ? `Project #${entry.project_id}` : 'No project'}
-                  {entry.task_id ? ` · Task #${entry.task_id}` : ''}
+                  {entry.project_id
+                    ? `${t('time.projectNumber')} #${entry.project_id}`
+                    : t('time.noProject')}
+                  {entry.task_id ? ` · ${t('time.taskNumber')} #${entry.task_id}` : ''}
                 </p>
                 <div className="space-y-1 text-sm leading-6 text-text-secondary">
-                  <p>Started: {formatDateTime(entry.started_at)}</p>
-                  <p>Ended: {formatDateTime(entry.ended_at)}</p>
-                  {entry.no_project_reason ? <p>Reason: {entry.no_project_reason}</p> : null}
+                  <p>
+                    {t('time.started')}: {formatDateTime(entry.started_at)}
+                  </p>
+                  <p>
+                    {t('time.ended')}: {formatDateTime(entry.ended_at)}
+                  </p>
+                  {entry.no_project_reason ? (
+                    <p>
+                      {t('time.reason')}: {entry.no_project_reason}
+                    </p>
+                  ) : null}
                 </div>
               </div>
 
               <div className="text-sm leading-6 text-text-muted">
-                <p>Entry #{entry.id}</p>
-                <p>Employee #{entry.employee_id}</p>
+                <p>
+                  {t('time.entryNumber')} #{entry.id}
+                </p>
+                <p>
+                  {t('time.employeeNumber')} #{entry.employee_id}
+                </p>
               </div>
             </div>
           </article>

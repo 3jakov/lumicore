@@ -5,6 +5,7 @@ import { AlertCircle, Users } from 'lucide-react';
 import Link from 'next/link';
 
 import { useEmployees } from '@/hooks/use-employees';
+import { useTranslation } from '@/hooks/use-translation';
 
 function EmployeeCardSkeleton(): JSX.Element {
   return (
@@ -25,6 +26,7 @@ function EmployeeCardSkeleton(): JSX.Element {
 }
 
 function EmployeeCard({ employee }: Readonly<{ employee: EmployeeSummary }>): JSX.Element {
+  const { t } = useTranslation();
   const statusTone =
     employee.status === 'Aktiivne'
       ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
@@ -61,7 +63,7 @@ function EmployeeCard({ employee }: Readonly<{ employee: EmployeeSummary }>): JS
             </span>
           ))
         ) : (
-          <span className="text-sm text-text-muted">No roles assigned</span>
+          <span className="text-sm text-text-muted">{t('team.people.noRoles')}</span>
         )}
       </div>
     </Link>
@@ -79,37 +81,42 @@ function LoadingState(): JSX.Element {
 }
 
 function ErrorState({ onRetry }: Readonly<{ onRetry: () => void }>): JSX.Element {
+  const { t } = useTranslation();
+
   return (
     <section className="panel flex flex-col items-center gap-4 py-16 text-center">
       <AlertCircle className="h-8 w-8 text-red-500" />
       <div>
-        <p className="font-semibold text-text-primary">Failed to load employees</p>
-        <p className="mt-1 text-sm text-text-secondary">Try again to reload the employee list.</p>
+        <p className="font-semibold text-text-primary">{t('team.people.failedToLoad')}</p>
+        <p className="mt-1 text-sm text-text-secondary">{t('team.people.failedDescription')}</p>
       </div>
       <button
         type="button"
         onClick={onRetry}
         className="rounded-2xl border border-border-subtle bg-surface-1 px-4 py-2 text-sm font-semibold text-text-secondary transition hover:border-border-strong hover:text-text-primary"
       >
-        Retry
+        {t('common.retry')}
       </button>
     </section>
   );
 }
 
 function EmptyState(): JSX.Element {
+  const { t } = useTranslation();
+
   return (
     <section className="panel flex flex-col items-center gap-4 py-16 text-center">
       <Users className="h-8 w-8 text-text-muted" />
       <div>
-        <p className="font-semibold text-text-primary">No employees found</p>
-        <p className="mt-1 text-sm text-text-secondary">Employees will appear here once created.</p>
+        <p className="font-semibold text-text-primary">{t('team.people.emptyTitle')}</p>
+        <p className="mt-1 text-sm text-text-secondary">{t('team.people.emptyDescription')}</p>
       </div>
     </section>
   );
 }
 
 export function EmployeesList(): JSX.Element {
+  const { t } = useTranslation();
   const { data, isLoading, isError, refetch } = useEmployees();
 
   if (isLoading) return <LoadingState />;
@@ -122,8 +129,10 @@ export function EmployeesList(): JSX.Element {
   return (
     <div className="space-y-4">
       <p className="text-sm text-text-muted">
-        {data?.meta.total ?? employees.length} employee
-        {(data?.meta.total ?? employees.length) !== 1 ? 's' : ''}
+        {data?.meta.total ?? employees.length}{' '}
+        {(data?.meta.total ?? employees.length) === 1
+          ? t('team.people.countSingular')
+          : t('team.people.countPlural')}
       </p>
       <div className="grid gap-4 xl:grid-cols-2">
         {employees.map((employee) => (

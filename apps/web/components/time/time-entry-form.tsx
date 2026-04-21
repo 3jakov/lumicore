@@ -6,6 +6,7 @@ import { type FormEvent, useMemo, useState } from 'react';
 import { useProjects } from '@/hooks/use-projects';
 import { useStartTimeEntry } from '@/hooks/use-start-time-entry';
 import { useTasks } from '@/hooks/use-tasks';
+import { useTranslation } from '@/hooks/use-translation';
 
 type TimeEntryFormState = {
   project_id: string;
@@ -62,6 +63,7 @@ function buildPayload(state: TimeEntryFormState): StartTimeEntryDto {
 }
 
 export function TimeEntryForm(): JSX.Element {
+  const { t } = useTranslation();
   const [form, setForm] = useState<TimeEntryFormState>(emptyFormState);
   const [localError, setLocalError] = useState<string | null>(null);
   const { isLoading, error, startTimeEntry } = useStartTimeEntry();
@@ -94,13 +96,13 @@ export function TimeEntryForm(): JSX.Element {
     setLocalError(null);
 
     if (!form.project_id && form.no_project_reason.trim().length < 10) {
-      setLocalError('Add a reason with at least 10 characters when no project is selected.');
+      setLocalError(t('time.form.noProjectReasonError'));
       return;
     }
 
     if (form.is_manual) {
       if (!form.started_at || !form.ended_at) {
-        setLocalError('Manual entries need both start and end time.');
+        setLocalError(t('time.form.manualTimeRequiredError'));
         return;
       }
 
@@ -111,7 +113,7 @@ export function TimeEntryForm(): JSX.Element {
         Number.isNaN(endedAt.getTime()) ||
         startedAt >= endedAt
       ) {
-        setLocalError('Manual entry end time must be after start time.');
+        setLocalError(t('time.form.manualTimeOrderError'));
         return;
       }
     }
@@ -127,15 +129,14 @@ export function TimeEntryForm(): JSX.Element {
       <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.24em] text-text-muted">
-            Start tracking
+            {t('time.form.eyebrow')}
           </p>
           <h2 className="mt-2 text-2xl font-semibold text-text-primary">
-            Create a live or manual entry
+            {t('time.form.title')}
           </h2>
         </div>
         <p className="max-w-xl text-sm leading-6 text-text-secondary">
-          Phase 1 stays HTTP-driven. Start a live timer, or add a manual entry when you already
-          know the start and end times.
+          {t('time.form.description')}
         </p>
       </div>
 
@@ -150,10 +151,10 @@ export function TimeEntryForm(): JSX.Element {
           />
           <span>
             <span className="block text-sm font-semibold text-text-primary">
-              Create a manual entry instead of starting a live timer
+              {t('time.form.manualToggle')}
             </span>
             <span className="mt-1 block text-sm leading-6 text-text-secondary">
-              Use this when you already know the exact start and end times.
+              {t('time.form.manualHint')}
             </span>
           </span>
         </label>
@@ -161,7 +162,7 @@ export function TimeEntryForm(): JSX.Element {
         <div className="grid gap-5 lg:grid-cols-2">
           <div className="space-y-1.5">
             <label className="text-sm font-semibold text-text-primary" htmlFor="time-entry-project">
-              Project
+              {t('time.form.project')}
             </label>
             <select
               id="time-entry-project"
@@ -171,7 +172,9 @@ export function TimeEntryForm(): JSX.Element {
               className={inputCls}
             >
               <option value="">
-                {isProjectsLoading ? 'Loading projects...' : 'No project selected'}
+                {isProjectsLoading
+                  ? t('time.form.loadingProjects')
+                  : t('time.form.noProjectSelected')}
               </option>
               {projects.map((project) => (
                 <option key={project.id} value={String(project.id)}>
@@ -183,7 +186,7 @@ export function TimeEntryForm(): JSX.Element {
 
           <div className="space-y-1.5">
             <label className="text-sm font-semibold text-text-primary" htmlFor="time-entry-task">
-              Task
+              {t('time.form.task')}
             </label>
             <select
               id="time-entry-task"
@@ -194,10 +197,10 @@ export function TimeEntryForm(): JSX.Element {
             >
               <option value="">
                 {!selectedProjectId
-                  ? 'Select a project first'
+                  ? t('time.form.selectProjectFirst')
                   : isTasksLoading
-                    ? 'Loading tasks...'
-                    : 'No task selected'}
+                    ? t('time.form.loadingTasks')
+                    : t('time.form.noTaskSelected')}
               </option>
               {tasks.map((task) => (
                 <option key={task.id} value={String(task.id)}>
@@ -213,7 +216,7 @@ export function TimeEntryForm(): JSX.Element {
                 className="text-sm font-semibold text-text-primary"
                 htmlFor="time-entry-no-project-reason"
               >
-                Reason when no project is selected
+                {t('time.form.noProjectReason')}
               </label>
               <textarea
                 id="time-entry-no-project-reason"
@@ -221,7 +224,7 @@ export function TimeEntryForm(): JSX.Element {
                 onChange={(event) => updateField('no_project_reason', event.target.value)}
                 disabled={disabled}
                 className={`${inputCls} min-h-28 resize-y`}
-                placeholder="Explain what you are doing if this time is not linked to a project."
+                placeholder={t('time.form.noProjectReasonPlaceholder')}
               />
             </div>
           ) : null}
@@ -230,7 +233,7 @@ export function TimeEntryForm(): JSX.Element {
             <>
               <div className="space-y-1.5">
                 <label className="text-sm font-semibold text-text-primary" htmlFor="time-entry-started-at">
-                  Start time
+                  {t('time.form.startTime')}
                 </label>
                 <input
                   id="time-entry-started-at"
@@ -244,7 +247,7 @@ export function TimeEntryForm(): JSX.Element {
 
               <div className="space-y-1.5">
                 <label className="text-sm font-semibold text-text-primary" htmlFor="time-entry-ended-at">
-                  End time
+                  {t('time.form.endTime')}
                 </label>
                 <input
                   id="time-entry-ended-at"
@@ -273,14 +276,14 @@ export function TimeEntryForm(): JSX.Element {
           >
             {isLoading
               ? form.is_manual
-                ? 'Creating...'
-                : 'Starting...'
+                ? t('time.form.creating')
+                : t('time.form.starting')
               : form.is_manual
-                ? 'Create manual entry'
-                : 'Start timer'}
+                ? t('time.form.createManual')
+                : t('time.form.startTimer')}
           </button>
           <p className="text-sm leading-6 text-text-muted">
-            Manual entries are optional in Phase 1, but the backend contract is already supported.
+            {t('time.form.phaseNote')}
           </p>
         </div>
       </form>

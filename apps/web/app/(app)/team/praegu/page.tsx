@@ -10,6 +10,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { PageHeader } from '@/components/layout/page-header';
 import { formatDuration, formatTime, getLivePraeguSeconds } from '@/components/time/time-utils';
 import { usePraegu } from '@/hooks/use-praegu';
+import { useTranslation } from '@/hooks/use-translation';
 import { socketClient } from '@/lib/socket';
 import { queryKeys } from '@/lib/query/query-keys';
 import { useSocketStore } from '@/store/socket.store';
@@ -43,31 +44,35 @@ function LoadingState(): JSX.Element {
 }
 
 function EmptyState({ connected }: Readonly<{ connected: boolean }>): JSX.Element {
+  const { t } = useTranslation();
+
   return (
     <section className="panel flex flex-col items-center gap-4 py-16 text-center">
       <TimerReset className="h-8 w-8 text-text-muted" />
       <div>
-        <p className="font-semibold text-text-primary">No active timers right now</p>
+        <p className="font-semibold text-text-primary">{t('team.praegu.emptyTitle')}</p>
         <p className="mt-1 text-sm text-text-secondary">
-          Praegu will update automatically when someone starts tracking time.
+          {t('team.praegu.emptyDescription')}
         </p>
       </div>
       <span className="pill">
         <Activity className="h-4 w-4" />
-        {connected ? 'Live' : 'Offline'}
+        {connected ? t('team.praegu.live') : t('team.praegu.offline')}
       </span>
     </section>
   );
 }
 
 function ErrorState({ onRetry }: Readonly<{ onRetry: () => void }>): JSX.Element {
+  const { t } = useTranslation();
+
   return (
     <section className="panel flex flex-col items-center gap-4 py-16 text-center">
       <AlertCircle className="h-8 w-8 text-red-500" />
       <div>
-        <p className="font-semibold text-text-primary">Failed to load Praegu</p>
+        <p className="font-semibold text-text-primary">{t('team.praegu.failedToLoad')}</p>
         <p className="mt-1 text-sm text-text-secondary">
-          The live snapshot could not be loaded. Try again.
+          {t('team.praegu.failedDescription')}
         </p>
       </div>
       <button
@@ -76,18 +81,20 @@ function ErrorState({ onRetry }: Readonly<{ onRetry: () => void }>): JSX.Element
         className="inline-flex items-center gap-2 rounded-2xl border border-border-subtle bg-surface-1 px-4 py-2 text-sm font-semibold text-text-secondary transition hover:border-border-strong hover:text-text-primary"
       >
         <RefreshCcw className="h-4 w-4" />
-        Reload
+        {t('team.praegu.reload')}
       </button>
     </section>
   );
 }
 
 function StatusBadge({ paused }: Readonly<{ paused: boolean }>): JSX.Element {
+  const { t } = useTranslation();
+
   if (paused) {
     return (
       <span className="pill border-amber-200 bg-amber-50 text-amber-800">
         <PauseCircle className="h-4 w-4" />
-        Paused
+        {t('team.praegu.paused')}
       </span>
     );
   }
@@ -95,7 +102,7 @@ function StatusBadge({ paused }: Readonly<{ paused: boolean }>): JSX.Element {
   return (
     <span className="pill border-emerald-200 bg-emerald-50 text-emerald-800">
       <PlayCircle className="h-4 w-4" />
-      Running
+      {t('team.praegu.running')}
     </span>
   );
 }
@@ -109,6 +116,7 @@ function PraeguCard({
   nowMs: number;
   snapshotMs: number;
 }>): JSX.Element {
+  const { t } = useTranslation();
   const liveDuration = useMemo(
     () => getLivePraeguSeconds(entry, nowMs, snapshotMs),
     [entry, nowMs, snapshotMs],
@@ -119,7 +127,7 @@ function PraeguCard({
       <div className="flex items-start justify-between gap-3">
         <div className="space-y-1">
           <p className="text-xs font-semibold uppercase tracking-[0.24em] text-text-muted">
-            Employee
+            {t('team.praegu.employee')}
           </p>
           <h2 className="text-2xl font-semibold text-text-primary">{entry.employee_name}</h2>
         </div>
@@ -127,28 +135,38 @@ function PraeguCard({
       </div>
 
       <div className="mt-6">
-        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-text-muted">Elapsed</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-text-muted">
+          {t('team.praegu.elapsed')}
+        </p>
         <p className="mt-2 text-4xl font-semibold text-accent-700">{formatDuration(liveDuration)}</p>
       </div>
 
       <div className="mt-6 grid gap-4 sm:grid-cols-2">
         <div className="rounded-2xl border border-border-subtle bg-surface-1 p-4">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-text-muted">Project</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-text-muted">
+            {t('team.praegu.project')}
+          </p>
           <p className="mt-2 text-sm leading-6 text-text-primary">
-            {entry.project_name ?? 'No project'}
+            {entry.project_name ?? t('team.praegu.noProject')}
           </p>
         </div>
         <div className="rounded-2xl border border-border-subtle bg-surface-1 p-4">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-text-muted">Task</p>
-          <p className="mt-2 text-sm leading-6 text-text-primary">{entry.task_name ?? 'No task'}</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-text-muted">
+            {t('team.praegu.task')}
+          </p>
+          <p className="mt-2 text-sm leading-6 text-text-primary">
+            {entry.task_name ?? t('team.praegu.noTask')}
+          </p>
         </div>
         <div className="rounded-2xl border border-border-subtle bg-surface-1 p-4">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-text-muted">Started</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-text-muted">
+            {t('team.praegu.started')}
+          </p>
           <p className="mt-2 text-sm leading-6 text-text-primary">{formatTime(entry.started_at)}</p>
         </div>
         <div className="rounded-2xl border border-border-subtle bg-surface-1 p-4">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-text-muted">
-            Paused total
+            {t('team.praegu.pausedTotal')}
           </p>
           <p className="mt-2 text-sm leading-6 text-text-primary">
             {formatDuration(entry.pause_duration_seconds)}
@@ -160,6 +178,7 @@ function PraeguCard({
 }
 
 export default function PraeguPage(): JSX.Element {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const connected = useSocketStore((state) => state.connected);
   const setConnected = useSocketStore((state) => state.setConnected);
@@ -217,13 +236,13 @@ export default function PraeguPage(): JSX.Element {
     <div className="space-y-6">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <PageHeader
-          eyebrow="Team"
-          title="Praegu"
-          description="Live overview of everyone currently tracking time across field and production."
+          eyebrow={t('team.title')}
+          title={t('team.praegu.title')}
+          description={t('team.praegu.description')}
         />
         <span className="pill self-start lg:self-auto">
           <Activity className="h-4 w-4" />
-          {connected ? 'Live socket connected' : 'Socket reconnecting'}
+          {connected ? t('team.praegu.liveSocketConnected') : t('team.praegu.socketReconnecting')}
         </span>
       </div>
 
