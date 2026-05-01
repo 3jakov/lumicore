@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 
 import './globals.css';
 
+import { ServiceWorkerRegister } from '@/components/pwa/service-worker-register';
 import { AppProviders } from '@/components/providers/app-providers';
 import { appManifest } from '@/lib/pwa/manifest';
 
@@ -33,6 +34,7 @@ export default function RootLayout({ children }: RootLayoutProps): JSX.Element {
   return (
     <html lang="et">
       <body>
+        <ServiceWorkerRegister />
         <AppProviders>{children}</AppProviders>
       </body>
     </html>
