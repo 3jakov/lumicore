@@ -166,3 +166,51 @@ export interface TeamTimesheetResponse {
   dates: string[];
   rows: TeamTimesheetRow[];
 }
+
+// ─── Report types ──────────────────────────────────────────────────────────────
+
+/** One row in the Summary report — totals per employee for a date range. */
+export interface ReportSummaryRow {
+  employee_id: number;
+  employee_name: string;
+  initials: string;
+  avatar_color: string;
+  group: string;
+  total_seconds: number;
+  working_days: number;
+  norm_seconds: number;
+  /** total_seconds − norm_seconds (negative = under norm) */
+  overtime_seconds: number;
+  entry_count: number;
+}
+
+export interface ReportSummaryResponse {
+  date_from: string;
+  date_to: string;
+  rows: ReportSummaryRow[];
+}
+
+/** One row in the Detailed / Unassigned report — individual time entry. */
+export interface ReportDetailRow {
+  id: number;
+  employee_id: number;
+  employee_name: string;
+  initials: string;
+  avatar_color: string;
+  project_id: number | null;
+  project_name: string | null;
+  task_id: number | null;
+  task_name: string | null;
+  started_at: string;
+  ended_at: string | null;
+  duration_seconds: number | null;
+  is_manual: boolean;
+  no_project_reason: string | null;
+}
+
+export interface ReportDetailResponse {
+  date_from: string;
+  date_to: string;
+  data: ReportDetailRow[];
+  meta: { total: number; page: number; limit: number };
+}

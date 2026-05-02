@@ -15,6 +15,8 @@ import type {
   TimeEntrySummary,
   TimesheetSummary,
   TeamTimesheetResponse,
+  ReportSummaryResponse,
+  ReportDetailResponse,
   PauseTimeEntryResponse,
   ResumeTimeEntryResponse,
   StopTimeEntryResponse,
@@ -30,6 +32,7 @@ import { TimeTrackingService } from './time-tracking.service';
 import { StartTimeEntryDto } from './dto/start-time-entry.dto';
 import { ListTimeEntriesDto } from './dto/list-time-entries.dto';
 import { TimesheetQueryDto } from './dto/timesheet-query.dto';
+import { ReportDetailQueryDto } from './dto/report-detail-query.dto';
 import type { Response } from 'express';
 
 @Controller('time-entries')
@@ -92,6 +95,28 @@ export class TimeTrackingController {
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
     await workbook.xlsx.write(res);
     res.end();
+  }
+
+  /**
+   * GET /api/v1/time-entries/reports/summary
+   * Admin — totals per employee for a date range.
+   */
+  @Get('reports/summary')
+  @UseGuards(RolesGuard)
+  @Roles('Administraator')
+  getReportSummary(@Query() dto: TimesheetQueryDto): Promise<ReportSummaryResponse> {
+    return this.timeTrackingService.getReportSummary(dto);
+  }
+
+  /**
+   * GET /api/v1/time-entries/reports/detailed
+   * Admin — paginated individual entries. Add ?unassigned_only=true for unassigned tab.
+   */
+  @Get('reports/detailed')
+  @UseGuards(RolesGuard)
+  @Roles('Administraator')
+  getReportDetailed(@Query() dto: ReportDetailQueryDto): Promise<ReportDetailResponse> {
+    return this.timeTrackingService.getReportDetailed(dto);
   }
 
   // ─── List ─────────────────────────────────────────────────────────────────

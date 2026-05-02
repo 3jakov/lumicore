@@ -13,6 +13,10 @@ import type {
   TimesheetDay,
   TeamTimesheetRow,
   TeamTimesheetResponse,
+  ReportSummaryRow,
+  ReportSummaryResponse,
+  ReportDetailRow,
+  ReportDetailResponse,
   PauseSummary,
   ActiveTimerEntry,
   TimerStartedEvent,
@@ -25,6 +29,7 @@ import { PrismaService } from '../database/prisma.service';
 import { StartTimeEntryDto } from './dto/start-time-entry.dto';
 import { ListTimeEntriesDto } from './dto/list-time-entries.dto';
 import { TimesheetQueryDto } from './dto/timesheet-query.dto';
+import { ReportDetailQueryDto } from './dto/report-detail-query.dto';
 import type { Pause, TimeEntry } from '@prisma/client';
 import { Workbook } from 'exceljs';
 import { TimeTrackingGateway } from './time-tracking.gateway';
@@ -511,6 +516,129 @@ export class TimeTrackingService {
       dates,
       rows,
     };
+  }
+
+  // ─── Reports ──────────────────────────────────────────────────────────────
+
+  /**
+   * GET /api/v1/time-entries/reports/summary
+   * Admin — totals per active employee for a date range.
+   */
+  async getReportSummary(dto: TimesheetQueryDto): Promise<ReportSummaryResponse> {
+    const dateFrom = this.tallinDayBoundary(dto.date_from, false);
+    const dateTo = this.tallinDayBoundary(dto.date_to, true);
+
+    const employees = await this.prisma.employee.findMany({
+      where: { archived_at: null },
+      orderBy: { full_name: 'asc' },
+      select: {
+        id: true,
+        full_name: true,
+        initials: true,
+        avatar_color: true,
+        group: true,
+        norm_hours_per_week: true,
+      },
+    });
+
+    const entries = await this.prisma.timeEntry.findMany({
+      where: { started_at: { gte: dateFrom, lte: dateTo }, ended_at: { not: null } },
+      include: { pauses: true },
+    });
+
+    // Count Mon–Fri working days in range
+    const cursor = new Date(dto.date_from);
+    const end = new Date(dto.date_to);
+    let workingDays = 0;
+    while (cursor <= end) {
+      const dow = cursor.getUTCDay();
+      if (dow >= 1 && dow <= 5) workingDays++;
+      cursor.setDate(cursor.getDate() + 1);
+    }
+
+    const byEmployee = new Map<number, { totalSeconds: number; entryCount: number }>();
+    for (const entry of entries) {
+      const duration = this.computeDurationSeconds(entry);
+      if (duration === null || duration <= 0) continue;
+      const existing = byEmployee.get(entry.employee_id) ?? { totalSeconds: 0, entryCount: 0 };
+      existing.totalSeconds += duration;
+      existing.entryCount += 1;
+      byEmployee.set(entry.employee_id, existing);
+    }
+
+    const rows: ReportSummaryRow[] = employees.map((emp) => {
+      const agg = byEmployee.get(emp.id) ?? { totalSeconds: 0, entryCount: 0 };
+      const normSeconds = workingDays * Math.round((emp.norm_hours_per_week / 5) * 3600);
+      return {
+        employee_id: emp.id,
+        employee_name: emp.full_name,
+        initials: emp.initials,
+        avatar_color: emp.avatar_color,
+        group: emp.group,
+        total_seconds: agg.totalSeconds,
+        working_days: workingDays,
+        norm_seconds: normSeconds,
+        overtime_seconds: agg.totalSeconds - normSeconds,
+        entry_count: agg.entryCount,
+      };
+    });
+
+    return { date_from: dto.date_from, date_to: dto.date_to, rows };
+  }
+
+  /**
+   * GET /api/v1/time-entries/reports/detailed
+   * Admin — paginated list of individual time entries with employee/project/task names.
+   * Pass unassigned_only=true to filter to entries without a project.
+   */
+  async getReportDetailed(dto: ReportDetailQueryDto): Promise<ReportDetailResponse> {
+    const dateFrom = this.tallinDayBoundary(dto.date_from, false);
+    const dateTo = this.tallinDayBoundary(dto.date_to, true);
+    const page = dto.page ?? 1;
+    const limit = dto.limit ?? 50;
+    const skip = (page - 1) * limit;
+
+    const where = {
+      started_at: { gte: dateFrom, lte: dateTo },
+      ...(dto.employee_id != null ? { employee_id: dto.employee_id } : {}),
+      ...(dto.project_id != null ? { project_id: dto.project_id } : {}),
+      ...(dto.unassigned_only ? { project_id: null } : {}),
+    };
+
+    const [entries, total] = await this.prisma.$transaction([
+      this.prisma.timeEntry.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: { started_at: 'desc' },
+        include: {
+          pauses: true,
+          employee: { select: { full_name: true, initials: true, avatar_color: true } },
+          project: { select: { name: true } },
+          task: { select: { name: true } },
+        },
+      }),
+      this.prisma.timeEntry.count({ where }),
+    ]);
+
+    const data: ReportDetailRow[] = entries.map((e) => ({
+      id: e.id,
+      employee_id: e.employee_id,
+      employee_name: e.employee.full_name,
+      initials: e.employee.initials,
+      avatar_color: e.employee.avatar_color,
+      project_id: e.project_id,
+      project_name: e.project?.name ?? null,
+      task_id: e.task_id,
+      task_name: e.task?.name ?? null,
+      started_at: e.started_at.toISOString(),
+      ended_at: e.ended_at ? e.ended_at.toISOString() : null,
+      duration_seconds: this.computeDurationSeconds(e),
+      is_manual: e.is_manual,
+      no_project_reason: e.no_project_reason,
+    }));
+
+    return { date_from: dto.date_from, date_to: dto.date_to, data, meta: { total, page, limit } };
   }
 
   // ─── Praegu (live view) ────────────────────────────────────────────────────
