@@ -36,6 +36,23 @@ class ApiClient {
     return this.request<T>('DELETE', path, options);
   }
 
+  /** Download a binary response as a Blob (e.g. Excel export). */
+  async getBlob(path: string, options?: RequestOptions): Promise<Blob> {
+    const token = useAuthStore.getState().accessToken;
+    const url = this.buildUrl(path, options?.params);
+    const response = await fetch(url, {
+      method: 'GET',
+      credentials: 'include',
+      headers: {
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...options?.headers,
+      },
+      cache: 'no-store',
+    });
+    if (!response.ok) throw await this.toApiError(response);
+    return response.blob();
+  }
+
   private async request<T>(
     method: HttpMethod,
     path: string,

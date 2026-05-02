@@ -11,6 +11,8 @@ import type {
   TimeEntryDetail,
   TimesheetSummary,
   TimesheetDay,
+  TeamTimesheetRow,
+  TeamTimesheetResponse,
   PauseSummary,
   ActiveTimerEntry,
   TimerStartedEvent,
@@ -414,6 +416,100 @@ export class TimeTrackingService {
       date_to: dto.date_to,
       total_tracked_seconds: totalTracked,
       days,
+    };
+  }
+
+  // ─── Timesheet (team / admin) ─────────────────────────────────────────────
+
+  /**
+   * GET /api/v1/time-entries/timesheet/team
+   * Admin endpoint — returns a monthly grid for all active employees.
+   * Rows are ordered by full_name. Durations computed from timestamps + pauses (BR-003).
+   */
+  async getTeamTimesheet(dto: TimesheetQueryDto): Promise<TeamTimesheetResponse> {
+    const dateFrom = this.tallinDayBoundary(dto.date_from, false);
+    const dateTo = this.tallinDayBoundary(dto.date_to, true);
+
+    // 1. All active employees (ordered by name)
+    const employees = await this.prisma.employee.findMany({
+      where: { archived_at: null },
+      orderBy: { full_name: 'asc' },
+      select: {
+        id: true,
+        full_name: true,
+        initials: true,
+        avatar_color: true,
+        norm_hours_per_week: true,
+      },
+    });
+
+    // 2. All closed time entries in the range across all employees
+    const entries = await this.prisma.timeEntry.findMany({
+      where: {
+        started_at: { gte: dateFrom, lte: dateTo },
+        ended_at: { not: null },
+      },
+      include: { pauses: true },
+      orderBy: { started_at: 'asc' },
+    });
+
+    // 3. Build ordered date list for the range
+    const dates: string[] = [];
+    const cursor = new Date(dto.date_from);
+    const end = new Date(dto.date_to);
+    while (cursor <= end) {
+      dates.push(this.toTallinDate(cursor));
+      cursor.setDate(cursor.getDate() + 1);
+    }
+
+    // 4. Count Mon–Fri working days in the range
+    const workingDays = dates.filter((d) => {
+      const dow = new Date(d + 'T12:00:00Z').getUTCDay(); // 0=Sun, 6=Sat
+      return dow >= 1 && dow <= 5;
+    }).length;
+
+    // 5. Group entries by employee_id
+    const byEmployee = new Map<number, typeof entries>();
+    for (const entry of entries) {
+      const list = byEmployee.get(entry.employee_id) ?? [];
+      list.push(entry);
+      byEmployee.set(entry.employee_id, list);
+    }
+
+    // 6. Build one row per employee
+    const rows: TeamTimesheetRow[] = employees.map((emp) => {
+      const empEntries = byEmployee.get(emp.id) ?? [];
+      const daySeconds: Record<string, number> = {};
+      let totalSeconds = 0;
+
+      for (const entry of empEntries) {
+        const duration = this.computeDurationSeconds(entry);
+        if (duration === null || duration <= 0) continue;
+        const dateKey = this.toTallinDate(entry.started_at);
+        daySeconds[dateKey] = (daySeconds[dateKey] ?? 0) + duration;
+        totalSeconds += duration;
+      }
+
+      const normSeconds = workingDays * Math.round((emp.norm_hours_per_week / 5) * 3600);
+
+      return {
+        employee_id: emp.id,
+        employee_name: emp.full_name,
+        initials: emp.initials,
+        avatar_color: emp.avatar_color,
+        day_seconds: daySeconds,
+        working_days: workingDays,
+        norm_seconds: normSeconds,
+        total_seconds: totalSeconds,
+        overtime_seconds: totalSeconds - normSeconds,
+      };
+    });
+
+    return {
+      date_from: dto.date_from,
+      date_to: dto.date_to,
+      dates,
+      rows,
     };
   }
 

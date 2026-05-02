@@ -15,6 +15,7 @@ export const et = {
     tools: 'Tööriistad',
     documents: 'Minu dokumendid',
     people: 'Inimesed',
+    myTimesheet: 'Minu tabel',
     timesheet: 'Tööajatabel',
     reports: 'Aruanded',
     settings: 'Seaded',

@@ -14,6 +14,7 @@ import type {
   TimeEntryDetail,
   TimeEntrySummary,
   TimesheetSummary,
+  TeamTimesheetResponse,
   PauseTimeEntryResponse,
   ResumeTimeEntryResponse,
   StopTimeEntryResponse,
@@ -21,6 +22,8 @@ import type {
 } from '@lumicore/shared-types';
 import type { PaginatedResponse } from '@lumicore/shared-types';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
+import { RolesGuard } from '../common/guards/roles.guard';
+import { Roles } from '../common/decorators/roles.decorator';
 import { CurrentUserDecorator } from '../common/decorators/current-user.decorator';
 import type { CurrentUser } from '@lumicore/shared-types';
 import { TimeTrackingService } from './time-tracking.service';
@@ -56,6 +59,20 @@ export class TimeTrackingController {
     @CurrentUserDecorator() user: CurrentUser,
   ): Promise<TimesheetSummary> {
     return this.timeTrackingService.getTimesheet(dto, user.id);
+  }
+
+  /**
+   * GET /api/v1/time-entries/timesheet/team
+   * Admin team timesheet grid — all active employees for a date range.
+   * Query: ?date_from=YYYY-MM-DD&date_to=YYYY-MM-DD (both required)
+   */
+  @Get('timesheet/team')
+  @UseGuards(RolesGuard)
+  @Roles('Administraator')
+  getTeamTimesheet(
+    @Query() dto: TimesheetQueryDto,
+  ): Promise<TeamTimesheetResponse> {
+    return this.timeTrackingService.getTeamTimesheet(dto);
   }
 
   /**

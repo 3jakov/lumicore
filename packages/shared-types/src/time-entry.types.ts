@@ -131,3 +131,38 @@ export interface TimesheetSummary {
   /** Daily breakdown for frontend grid rendering. */
   days: TimesheetDay[];
 }
+
+// ─── Team timesheet types ──────────────────────────────────────────────────────
+
+/**
+ * One employee row in the admin team timesheet grid.
+ * day_seconds maps YYYY-MM-DD → tracked seconds for that day.
+ */
+export interface TeamTimesheetRow {
+  employee_id: number;
+  employee_name: string;
+  initials: string;
+  avatar_color: string;
+  /** YYYY-MM-DD → tracked seconds (only days with tracked time are present) */
+  day_seconds: Record<string, number>;
+  /** Count of Mon–Fri calendar days in the requested range */
+  working_days: number;
+  /** working_days × (norm_hours_per_week / 5) × 3600 */
+  norm_seconds: number;
+  /** Sum of all day_seconds values */
+  total_seconds: number;
+  /** total_seconds − norm_seconds (negative = under norm) */
+  overtime_seconds: number;
+}
+
+/**
+ * Admin team timesheet response.
+ * One row per active employee ordered by full_name.
+ */
+export interface TeamTimesheetResponse {
+  date_from: string;
+  date_to: string;
+  /** Ordered list of YYYY-MM-DD dates in the range (including weekends) */
+  dates: string[];
+  rows: TeamTimesheetRow[];
+}

@@ -22,6 +22,7 @@ export const navSections: NavSection[] = [
       { href: '/projects', labelKey: 'nav.projects', icon: 'projects' },
       { href: '/tasks', labelKey: 'nav.tasks', icon: 'tasks' },
       { href: '/time', labelKey: 'nav.time', icon: 'time' },
+      { href: '/time/timesheet', labelKey: 'nav.myTimesheet', icon: 'time' },
       { href: '/team/praegu', labelKey: 'nav.praegu', icon: 'team' },
       { href: '/tools', labelKey: 'nav.tools', icon: 'tools' },
       {

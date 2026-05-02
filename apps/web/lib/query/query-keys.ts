@@ -33,6 +33,8 @@ export const queryKeys = {
     praegu: ['time-entries', 'praegu'] as const,
     timesheets: ['time-entries', 'timesheet'] as const,
     timesheet: (filters?: ListFilters) => ['time-entries', 'timesheet', filters] as const,
+    teamTimesheet: (dateFrom: string, dateTo: string) =>
+      ['time-entries', 'timesheet', 'team', dateFrom, dateTo] as const,
   },
   employees: {
     all: ['employees'] as const,

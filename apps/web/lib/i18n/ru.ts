@@ -17,6 +17,7 @@ export const ru = {
     tools: 'Инструменты',
     documents: 'Мои документы',
     people: 'Сотрудники',
+    myTimesheet: 'Мой табель',
     timesheet: 'Табель',
     reports: 'Отчёты',
     settings: 'Настройки',
