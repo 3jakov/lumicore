@@ -31,8 +31,10 @@ export class TimeTrackingGateway implements OnGatewayConnection {
     }
 
     try {
-      this.jwtService.verify<JwtPayload>(token);
-      client.join('timers');
+      const payload = this.jwtService.verify<JwtPayload>(token);
+      client.data.employeeId = payload.sub;
+      void client.join(`employee:${payload.sub}`);
+      void client.join('timers');
     } catch {
       client.disconnect();
     }
@@ -40,5 +42,9 @@ export class TimeTrackingGateway implements OnGatewayConnection {
 
   emitTimerEvent(event: string, payload: unknown): void {
     this.server.to('timers').emit(event, payload);
+  }
+
+  emitToEmployee(employeeId: number, event: string, payload: unknown): void {
+    this.server.to(`employee:${employeeId}`).emit(event, payload);
   }
 }

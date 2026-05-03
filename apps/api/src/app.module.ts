@@ -14,12 +14,15 @@ import { DocAcknowledgementModule } from './doc-acknowledgement/doc-acknowledgem
 import { PhotosModule } from './photos/photos.module';
 import { DocumentsModule } from './documents/documents.module';
 import { AbsencesModule } from './absences/absences.module';
+import { NotificationsModule } from './notifications/notifications.module';
+import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
     }),
+    ScheduleModule.forRoot(),
     DatabaseModule,
     AuthModule,
     ProjectsModule,
@@ -32,6 +35,7 @@ import { AbsencesModule } from './absences/absences.module';
     PhotosModule,
     DocumentsModule,
     AbsencesModule,
+    NotificationsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

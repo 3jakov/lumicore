@@ -53,6 +53,7 @@ model Employee {
   uploaded_documents      InternalDocument[]     @relation("DocumentUploader")
   absences                Absence[]              @relation("EmployeeAbsences")
   created_absences        Absence[]              @relation("AbsenceCreatedBy")
+  notifications           Notification[]
 
   @@index([status])
   @@index([group])
@@ -574,4 +575,26 @@ model Absence {
 
   @@index([employee_id])
   @@index([date_from, date_to])
+}
+
+enum NotificationType {
+  TimerForgottenStart
+  TimerForgottenStop
+}
+
+// ─────────────────────────────────────────────
+// NOTIFICATIONS
+// ─────────────────────────────────────────────
+
+model Notification {
+  id          Int              @id @default(autoincrement())
+  employee_id Int
+  type        NotificationType
+  read_at     DateTime?        @db.Timestamptz
+  created_at  DateTime         @default(now()) @db.Timestamptz
+
+  employee Employee @relation(fields: [employee_id], references: [id])
+
+  @@index([employee_id, read_at])
+  @@index([created_at])
 }

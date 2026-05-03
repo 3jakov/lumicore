@@ -18,6 +18,6 @@ import { TimeTrackingGateway } from './time-tracking.gateway';
   ],
   controllers: [TimeTrackingController],
   providers: [TimeTrackingService, TimeTrackingGateway],
-  exports: [TimeTrackingService],
+  exports: [TimeTrackingService, TimeTrackingGateway],
 })
 export class TimeTrackingModule {}
