@@ -7,7 +7,7 @@
 const TZ = 'Europe/Tallinn';
 
 /** Returns today's date string in YYYY-MM-DD format (Tallinn timezone). */
-export function getTallinToday(): string {
+export function getTallinnToday(): string {
   return new Intl.DateTimeFormat('en-CA', {
     timeZone: TZ,
     year: 'numeric',
@@ -19,13 +19,13 @@ export function getTallinToday(): string {
 /**
  * Convert a YYYY-MM-DD date string to a UTC Date representing either the
  * start (00:00:00) or end (23:59:59) of that calendar day in Tallinn.
- * DST-safe: mirrors the technique used in TimeTrackingService.tallinDayBoundary().
+ * DST-safe: mirrors the technique used in TimeTrackingService.tallinnDayBoundary().
  */
-function tallinDayBoundary(dateStr: string, endOfDay: boolean): Date {
+function tallinnDayBoundary(dateStr: string, endOfDay: boolean): Date {
   const timeStr = endOfDay ? 'T23:59:59' : 'T00:00:00';
   const estimate = new Date(dateStr + timeStr + 'Z');
 
-  const tallinLocalStr = new Intl.DateTimeFormat('sv-SE', {
+  const tallinnLocalStr = new Intl.DateTimeFormat('sv-SE', {
     timeZone: TZ,
     year: 'numeric',
     month: '2-digit',
@@ -35,17 +35,17 @@ function tallinDayBoundary(dateStr: string, endOfDay: boolean): Date {
     second: '2-digit',
   }).format(estimate);
 
-  const tallinAsUtc = new Date(tallinLocalStr.replace(' ', 'T') + 'Z');
-  const offsetMs = tallinAsUtc.getTime() - estimate.getTime();
+  const tallinnAsUtc = new Date(tallinnLocalStr.replace(' ', 'T') + 'Z');
+  const offsetMs = tallinnAsUtc.getTime() - estimate.getTime();
   return new Date(estimate.getTime() - offsetMs);
 }
 
 /** Returns the start-of-day UTC Date for a YYYY-MM-DD string in Tallinn timezone. */
-export function tallinDayStart(dateStr: string): Date {
-  return tallinDayBoundary(dateStr, false);
+export function tallinnDayStart(dateStr: string): Date {
+  return tallinnDayBoundary(dateStr, false);
 }
 
 /** Returns the end-of-day UTC Date for a YYYY-MM-DD string in Tallinn timezone. */
-export function tallinDayEnd(dateStr: string): Date {
-  return tallinDayBoundary(dateStr, true);
+export function tallinnDayEnd(dateStr: string): Date {
+  return tallinnDayBoundary(dateStr, true);
 }

@@ -3,7 +3,7 @@ import { Injectable } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { PrismaService } from '../database/prisma.service';
 import { TimeTrackingGateway } from '../time-tracking/time-tracking.gateway';
-import { getTallinToday, tallinDayStart, tallinDayEnd } from '../common/tallinn-date';
+import { getTallinnToday, tallinnDayStart, tallinnDayEnd } from '../common/tallinn-date';
 import { NotificationsService } from './notifications.service';
 
 @Injectable()
@@ -18,9 +18,9 @@ export class NotificationsCron {
 
   @Cron('0 8 * * 1-5', { timeZone: 'Europe/Tallinn' })
   async checkMorning(): Promise<void> {
-    const today = getTallinToday();
-    const dayStart = tallinDayStart(today);
-    const dayEnd = tallinDayEnd(today);
+    const today = getTallinnToday();
+    const dayStart = tallinnDayStart(today);
+    const dayEnd = tallinnDayEnd(today);
 
     const employees = await this.prisma.employee.findMany({
       where: { archived_at: null, status: 'Aktiivne' },
@@ -28,6 +28,17 @@ export class NotificationsCron {
     });
 
     for (const emp of employees) {
+      // Skip if already notified today (e.g. cron restarted / manual trigger)
+      const alreadyNotified = await this.prisma.notification.count({
+        where: {
+          employee_id: emp.id,
+          type: 'TimerForgottenStart',
+          created_at: { gte: dayStart, lte: dayEnd },
+        },
+      });
+      if (alreadyNotified) continue;
+
+      // Skip if employee has an absence covering today
       const hasAbsence = await this.prisma.absence.count({
         where: {
           employee_id: emp.id,
@@ -37,6 +48,7 @@ export class NotificationsCron {
       });
       if (hasAbsence) continue;
 
+      // Skip if employee already has a time entry today
       const hasEntry = await this.prisma.timeEntry.count({
         where: {
           employee_id: emp.id,
@@ -56,13 +68,30 @@ export class NotificationsCron {
 
   @Cron('0 18 * * 1-5', { timeZone: 'Europe/Tallinn' })
   async checkEvening(): Promise<void> {
+    const today = getTallinnToday();
+    const dayStart = tallinnDayStart(today);
+    const dayEnd = tallinnDayEnd(today);
+
+    // Only consider timers started today — avoids spamming for stale timers
+    // that started on a previous day. (A stale timer will still appear daily
+    // until stopped, but at most once per day thanks to dedup below.)
     const running = await this.prisma.timeEntry.findMany({
-      where: { ended_at: null },
+      where: { ended_at: null, started_at: { gte: dayStart, lte: dayEnd } },
       select: { employee_id: true },
       distinct: ['employee_id'],
     });
 
     for (const { employee_id } of running) {
+      // Skip if already notified today
+      const alreadyNotified = await this.prisma.notification.count({
+        where: {
+          employee_id,
+          type: 'TimerForgottenStop',
+          created_at: { gte: dayStart, lte: dayEnd },
+        },
+      });
+      if (alreadyNotified) continue;
+
       const n = await this.prisma.notification.create({
         data: { employee_id, type: 'TimerForgottenStop' },
       });
