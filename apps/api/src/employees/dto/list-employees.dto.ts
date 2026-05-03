@@ -1,8 +1,12 @@
-import { IsEnum, IsInt, IsOptional, Max, Min } from 'class-validator';
+import { IsEnum, IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
 import { Transform } from 'class-transformer';
 import { EmployeeGroup } from '@lumicore/shared-types';
 
 export class ListEmployeesDto {
+  @IsOptional()
+  @IsString()
+  search?: string;
+
   @IsOptional()
   @IsEnum(EmployeeGroup)
   group?: EmployeeGroup;

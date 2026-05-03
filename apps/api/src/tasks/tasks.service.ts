@@ -56,6 +56,7 @@ export class TasksService {
       ...(dto.project_id != null ? { project_id: dto.project_id } : {}),
       ...(dto.status ? { status: dto.status } : {}),
       ...(dto.priority ? { priority: dto.priority } : {}),
+      ...(dto.search ? { name: { contains: dto.search, mode: 'insensitive' as const } } : {}),
     };
 
     const [tasks, total] = await this.prisma.$transaction([

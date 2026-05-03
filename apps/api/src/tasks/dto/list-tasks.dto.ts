@@ -1,8 +1,12 @@
-import { IsEnum, IsInt, IsOptional, IsPositive, Max, Min } from 'class-validator';
+import { IsEnum, IsInt, IsOptional, IsPositive, IsString, Max, Min } from 'class-validator';
 import { Transform } from 'class-transformer';
 import { Priority, TaskStatus } from '@lumicore/shared-types';
 
 export class ListTasksDto {
+  @IsOptional()
+  @IsString()
+  search?: string;
+
   @IsOptional()
   @Transform(({ value }) => parseInt(value as string, 10))
   @IsInt()

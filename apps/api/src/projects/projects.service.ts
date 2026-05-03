@@ -21,6 +21,7 @@ export class ProjectsService {
     const where = {
       archived_at: null,
       ...(dto.status ? { status: dto.status } : {}),
+      ...(dto.search ? { name: { contains: dto.search, mode: 'insensitive' as const } } : {}),
     };
 
     const [projects, total] = await this.prisma.$transaction([

@@ -42,6 +42,7 @@ export class EmployeesService {
     const where = {
       archived_at: null,
       ...(dto.group ? { group: dto.group } : {}),
+      ...(dto.search ? { full_name: { contains: dto.search, mode: 'insensitive' as const } } : {}),
     };
 
     const [employees, total] = await this.prisma.$transaction([
