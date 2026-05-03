@@ -57,6 +57,7 @@ services:
       SMTP_USER: ${SMTP_USER}
       SMTP_PASS: ${SMTP_PASS}
       SMS_PROVIDER_API_KEY: ${SMS_PROVIDER_API_KEY}
+      CORS_ORIGIN: ${CORS_ORIGIN}
       SOCKET_CORS_ORIGIN: ${SOCKET_CORS_ORIGIN}
       NODE_ENV: production
     networks:
