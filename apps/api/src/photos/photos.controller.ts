@@ -1,3 +1,4 @@
+// Photos module — gallery, upload, comments
 import {
   Body,
   Controller,
