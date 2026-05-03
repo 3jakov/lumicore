@@ -58,4 +58,9 @@ export const queryKeys = {
     tags: ['settings', 'tags'] as const,
     tagsFiltered: (entityType?: string) => ['settings', 'tags', entityType] as const,
   },
+  absences: {
+    all: ['absences'] as const,
+    my: ['absences', 'my'] as const,
+    list: (filters?: ListFilters) => ['absences', 'list', filters] as const,
+  },
 };

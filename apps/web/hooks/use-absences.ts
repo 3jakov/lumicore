@@ -1,10 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '@/lib/api-client';
+import { queryKeys } from '@/lib/query/query-keys';
 import type { AbsenceSummary, CreateAbsenceDto } from '@lumicore/shared-types';
 
 export function useMyAbsences() {
   return useQuery<AbsenceSummary[]>({
-    queryKey: ['absences', 'my'],
+    queryKey: queryKeys.absences.my,
     queryFn: () => apiClient.get<AbsenceSummary[]>('/absences/my'),
   });
 }
@@ -15,8 +16,9 @@ export function useCreateAbsence() {
     mutationFn: (dto: CreateAbsenceDto) =>
       apiClient.post<AbsenceSummary>('/absences', { body: dto }),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['team-timesheet'] });
-      void queryClient.invalidateQueries({ queryKey: ['absences'] });
+      // Invalidate all team timesheet variants (any date range)
+      void queryClient.invalidateQueries({ queryKey: queryKeys.timeEntries.timesheets });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.absences.all });
     },
   });
 }
@@ -26,8 +28,8 @@ export function useDeleteAbsence() {
   return useMutation({
     mutationFn: (id: number) => apiClient.delete<void>(`/absences/${id}`),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['team-timesheet'] });
-      void queryClient.invalidateQueries({ queryKey: ['absences'] });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.timeEntries.timesheets });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.absences.all });
     },
   });
 }
