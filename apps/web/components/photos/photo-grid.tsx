@@ -10,7 +10,6 @@ import { PhotoLightbox } from './photo-lightbox';
 
 type Props = {
   projectId?: number;
-  title?: string;
 };
 
 function fmtDate(iso: string) {
@@ -19,7 +18,7 @@ function fmtDate(iso: string) {
   });
 }
 
-export function PhotoGrid({ projectId, title = 'Фото' }: Props) {
+export function PhotoGrid({ projectId }: Props) {
   const [page, setPage] = useState(1);
   const [activePhoId, setActivePhotoId] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
