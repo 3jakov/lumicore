@@ -13,6 +13,7 @@ import { SettingsModule } from './settings/settings.module';
 import { DocAcknowledgementModule } from './doc-acknowledgement/doc-acknowledgement.module';
 import { PhotosModule } from './photos/photos.module';
 import { DocumentsModule } from './documents/documents.module';
+import { AbsencesModule } from './absences/absences.module';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { DocumentsModule } from './documents/documents.module';
     DocAcknowledgementModule,
     PhotosModule,
     DocumentsModule,
+    AbsencesModule,
   ],
   controllers: [AppController],
   providers: [AppService],

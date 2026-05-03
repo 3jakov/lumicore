@@ -33,6 +33,7 @@ import { ReportDetailQueryDto } from './dto/report-detail-query.dto';
 import type { Pause, TimeEntry } from '@prisma/client';
 import { Workbook } from 'exceljs';
 import { TimeTrackingGateway } from './time-tracking.gateway';
+import { ABSENCE_META } from '../absences/absence-meta';
 
 // ─── Internal query result type ───────────────────────────────────────────────
 
@@ -458,6 +459,14 @@ export class TimeTrackingService {
       orderBy: { started_at: 'asc' },
     });
 
+    // 2b. All absences overlapping the range
+    const absences = await this.prisma.absence.findMany({
+      where: {
+        date_from: { lte: new Date(dto.date_to) },
+        date_to: { gte: new Date(dto.date_from) },
+      },
+    });
+
     // 3. Build ordered date list for the range
     const dates: string[] = [];
     const cursor = new Date(dto.date_from);
@@ -468,10 +477,11 @@ export class TimeTrackingService {
     }
 
     // 4. Count Mon–Fri working days in the range
-    const workingDays = dates.filter((d) => {
+    const workingDaysList = dates.filter((d) => {
       const dow = new Date(d + 'T12:00:00Z').getUTCDay(); // 0=Sun, 6=Sat
       return dow >= 1 && dow <= 5;
-    }).length;
+    });
+    const workingDays = workingDaysList.length;
 
     // 5. Group entries by employee_id
     const byEmployee = new Map<number, typeof entries>();
@@ -479,6 +489,14 @@ export class TimeTrackingService {
       const list = byEmployee.get(entry.employee_id) ?? [];
       list.push(entry);
       byEmployee.set(entry.employee_id, list);
+    }
+
+    // 5b. Group absences by employee_id
+    const absencesByEmployee = new Map<number, typeof absences>();
+    for (const absence of absences) {
+      const list = absencesByEmployee.get(absence.employee_id) ?? [];
+      list.push(absence);
+      absencesByEmployee.set(absence.employee_id, list);
     }
 
     // 6. Build one row per employee
@@ -495,7 +513,29 @@ export class TimeTrackingService {
         totalSeconds += duration;
       }
 
-      const normSeconds = workingDays * Math.round((emp.norm_hours_per_week / 5) * 3600);
+      // Build day_absences map; use Set to avoid double-counting overlapping absences
+      const empAbsences = absencesByEmployee.get(emp.id) ?? [];
+      const dayAbsences: Record<string, string> = {};
+      const normReducingDatesSet = new Set<string>();
+
+      for (const absence of empAbsences) {
+        const meta = ABSENCE_META[absence.type];
+        const abFrom = absence.date_from.toISOString().slice(0, 10);
+        const abTo = absence.date_to.toISOString().slice(0, 10);
+
+        for (const date of workingDaysList) {
+          if (date >= abFrom && date <= abTo) {
+            dayAbsences[date] = meta.code;
+            if (meta.reduces_norm) normReducingDatesSet.add(date);
+          }
+        }
+      }
+
+      const absenceNormReductionDays = normReducingDatesSet.size;
+
+      const dailyNormSeconds = Math.round((emp.norm_hours_per_week / 5) * 3600);
+      const normSeconds = workingDays * dailyNormSeconds;
+      const adjustedNormSeconds = Math.max(0, (workingDays - absenceNormReductionDays) * dailyNormSeconds);
 
       return {
         employee_id: emp.id,
@@ -503,10 +543,12 @@ export class TimeTrackingService {
         initials: emp.initials,
         avatar_color: emp.avatar_color,
         day_seconds: daySeconds,
+        day_absences: dayAbsences,
         working_days: workingDays,
         norm_seconds: normSeconds,
+        adjusted_norm_seconds: adjustedNormSeconds,
         total_seconds: totalSeconds,
-        overtime_seconds: totalSeconds - normSeconds,
+        overtime_seconds: totalSeconds - adjustedNormSeconds,
       };
     });
 

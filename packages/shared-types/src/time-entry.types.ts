@@ -145,13 +145,17 @@ export interface TeamTimesheetRow {
   avatar_color: string;
   /** YYYY-MM-DD → tracked seconds (only days with tracked time are present) */
   day_seconds: Record<string, number>;
+  /** YYYY-MM-DD → absence display code ("Б", "СД", "ОО"...) */
+  day_absences: Record<string, string>;
   /** Count of Mon–Fri calendar days in the requested range */
   working_days: number;
   /** working_days × (norm_hours_per_week / 5) × 3600 */
   norm_seconds: number;
+  /** norm_seconds minus days covered by norm-reducing absences */
+  adjusted_norm_seconds: number;
   /** Sum of all day_seconds values */
   total_seconds: number;
-  /** total_seconds − norm_seconds (negative = under norm) */
+  /** total_seconds − adjusted_norm_seconds (negative = under norm) */
   overtime_seconds: number;
 }
 
