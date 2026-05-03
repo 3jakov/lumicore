@@ -1,17 +1,30 @@
-'use client';
-
-import type { PhotoSummary } from '@lumicore/shared-types';
-import { useQuery, type UseQueryResult } from '@tanstack/react-query';
-
+import { useQuery } from '@tanstack/react-query';
+import type { UseQueryResult } from '@tanstack/react-query';
+import type { PhotoListResponse } from '@lumicore/shared-types';
 import { apiClient } from '@/lib/api-client';
-import { queryKeys } from '@/lib/query/query-keys';
 
-export function usePhotos(projectId: number): UseQueryResult<PhotoSummary[]> {
+type Params = {
+  project_id?: number;
+  author_id?: number;
+  date_from?: string;
+  date_to?: string;
+  page?: number;
+  limit?: number;
+};
+
+export function usePhotos(params: Params = {}): UseQueryResult<PhotoListResponse> {
   return useQuery({
-    queryKey: queryKeys.photos.list(projectId),
+    queryKey: ['photos', params],
     queryFn: () =>
-      apiClient.get<PhotoSummary[]>('/photos', {
-        params: { project_id: projectId },
+      apiClient.get<PhotoListResponse>('/photos', {
+        params: {
+          project_id: params.project_id,
+          author_id: params.author_id,
+          date_from: params.date_from,
+          date_to: params.date_to,
+          page: params.page ?? 1,
+          limit: params.limit ?? 30,
+        },
       }),
   });
 }

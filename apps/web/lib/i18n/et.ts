@@ -13,6 +13,7 @@ export const et = {
     time: 'Tööaeg',
     praegu: 'Praegu',
     tools: 'Tööriistad',
+    photos: 'Fotod',
     documents: 'Minu dokumendid',
     people: 'Inimesed',
     myTimesheet: 'Minu tabel',

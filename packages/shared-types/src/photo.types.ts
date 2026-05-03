@@ -1,10 +1,26 @@
+export interface PhotoCommentSummary {
+  id: number;
+  photo_id: number;
+  author_id: number;
+  author_name: string;
+  author_initials: string;
+  author_avatar_color: string;
+  text: string;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface PhotoSummary {
   id: number;
   s3_key: string;
   thumbnail_s3_key: string | null;
   project_id: number | null;
+  project_name: string | null;
   task_id: number | null;
   author_id: number;
+  author_name: string;
+  author_initials: string;
+  author_avatar_color: string;
   gps_lat: number | null;
   gps_lng: number | null;
   gps_verified: boolean;
@@ -15,6 +31,11 @@ export interface PhotoSummary {
   /** Signed read URL — generated server-side, not stored */
   url: string;
   thumbnail_url: string | null;
+  comment_count: number;
+}
+
+export interface PhotoDetail extends PhotoSummary {
+  comments: PhotoCommentSummary[];
 }
 
 export interface SavePhotoDto {
@@ -31,4 +52,17 @@ export interface SavePhotoDto {
 export interface PhotoUploadUrlResponse {
   upload_url: string;
   s3_key: string;
+}
+
+export interface CreatePhotoCommentDto {
+  text: string;
+}
+
+export interface PhotoListResponse {
+  data: PhotoSummary[];
+  meta: {
+    total: number;
+    page: number;
+    limit: number;
+  };
 }

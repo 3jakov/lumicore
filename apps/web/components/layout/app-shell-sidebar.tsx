@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   Box,
+  Camera,
   Clock3,
   FileCheck2,
   FolderKanban,
@@ -33,6 +34,7 @@ export function AppShellSidebar({ mobile = false, onClose }: Props): JSX.Element
     time: Clock3,
     team: Users2,
     tools: Wrench,
+    photos: Camera,
     documents: FileCheck2,
     settings: Settings2,
   } as const;

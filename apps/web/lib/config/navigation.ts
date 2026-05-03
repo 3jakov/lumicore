@@ -5,7 +5,7 @@ import type { DictionaryKey } from '@/lib/i18n';
 export type NavItem = {
   href: Route;
   labelKey: DictionaryKey;
-  icon: 'dashboard' | 'documents' | 'projects' | 'settings' | 'tasks' | 'team' | 'time' | 'tools';
+  icon: 'dashboard' | 'documents' | 'photos' | 'projects' | 'settings' | 'tasks' | 'team' | 'time' | 'tools';
   badgeKey?: DictionaryKey;
 };
 
@@ -25,6 +25,7 @@ export const navSections: NavSection[] = [
       { href: '/time/timesheet', labelKey: 'nav.myTimesheet', icon: 'time' },
       { href: '/team/praegu', labelKey: 'nav.praegu', icon: 'team' },
       { href: '/tools', labelKey: 'nav.tools', icon: 'tools' },
+      { href: '/photos', labelKey: 'nav.photos', icon: 'photos' },
       {
         href: '/documents',
         labelKey: 'nav.documents',

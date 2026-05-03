@@ -15,6 +15,7 @@ export const ru = {
     time: 'Время',
     praegu: 'Сейчас',
     tools: 'Инструменты',
+    photos: 'Фото',
     documents: 'Мои документы',
     people: 'Сотрудники',
     myTimesheet: 'Мой табель',

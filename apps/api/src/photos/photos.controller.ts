@@ -3,28 +3,33 @@ import {
   Controller,
   Get,
   HttpCode,
+  Param,
+  ParseIntPipe,
   Post,
   Query,
   UseGuards,
 } from '@nestjs/common';
-import type { PhotoSummary, PhotoUploadUrlResponse } from '@lumicore/shared-types';
+import type {
+  PhotoSummary,
+  PhotoDetail,
+  PhotoCommentSummary,
+  PhotoUploadUrlResponse,
+  PhotoListResponse,
+} from '@lumicore/shared-types';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { CurrentUserDecorator } from '../common/decorators/current-user.decorator';
-import { CurrentUser } from '@lumicore/shared-types';
+import type { CurrentUser } from '@lumicore/shared-types';
 import { PhotosService } from './photos.service';
 import { SavePhotoDto } from './dto/save-photo.dto';
 import { GetPhotosDto } from './dto/get-photos.dto';
+import { CreatePhotoCommentDto } from './dto/create-photo-comment.dto';
 
 @Controller('photos')
 @UseGuards(JwtAuthGuard)
 export class PhotosController {
   constructor(private readonly photosService: PhotosService) {}
 
-  /**
-   * POST /api/v1/photos/upload-url?filename=photo.jpg
-   * Returns a presigned S3 PUT URL and the s3_key to use in savePhoto.
-   * Declared before :id routes to avoid route collision.
-   */
+  /** POST /api/v1/photos/upload-url?filename=photo.jpg */
   @Post('upload-url')
   @HttpCode(200)
   getUploadUrl(
@@ -33,10 +38,7 @@ export class PhotosController {
     return this.photosService.getUploadUrl(filename);
   }
 
-  /**
-   * POST /api/v1/photos
-   * Save photo metadata after the client has uploaded the file directly to S3.
-   */
+  /** POST /api/v1/photos — save metadata after S3 upload */
   @Post()
   savePhoto(
     @Body() dto: SavePhotoDto,
@@ -45,12 +47,33 @@ export class PhotosController {
     return this.photosService.savePhoto(dto, user.id);
   }
 
-  /**
-   * GET /api/v1/photos
-   * List photos with optional filters: project_id, author_id, date_from, date_to.
-   */
+  /** GET /api/v1/photos — paginated list with filters */
   @Get()
-  findAll(@Query() dto: GetPhotosDto): Promise<PhotoSummary[]> {
+  findAll(@Query() dto: GetPhotosDto): Promise<PhotoListResponse> {
     return this.photosService.findAll(dto);
+  }
+
+  /** GET /api/v1/photos/:id — single photo with comments */
+  @Get(':id')
+  findOne(@Param('id', ParseIntPipe) id: number): Promise<PhotoDetail> {
+    return this.photosService.findOne(id);
+  }
+
+  /** GET /api/v1/photos/:id/comments */
+  @Get(':id/comments')
+  getComments(
+    @Param('id', ParseIntPipe) id: number,
+  ): Promise<PhotoCommentSummary[]> {
+    return this.photosService.getComments(id);
+  }
+
+  /** POST /api/v1/photos/:id/comments */
+  @Post(':id/comments')
+  addComment(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: CreatePhotoCommentDto,
+    @CurrentUserDecorator() user: CurrentUser,
+  ): Promise<PhotoCommentSummary> {
+    return this.photosService.addComment(id, dto, user.id);
   }
 }
