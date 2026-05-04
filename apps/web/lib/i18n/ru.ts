@@ -227,6 +227,16 @@ export const ru = {
     noEmployees: 'Сотрудников нет',
     failedToSave: 'Не удалось сохранить отсутствие',
   },
+  notifications: {
+    title: 'Уведомления',
+    open: 'Открыть уведомления',
+    loading: 'Загружаю уведомления...',
+    empty: 'Нет уведомлений',
+    unread: 'непрочитанных',
+    markAllRead: 'Прочитать все',
+    timerForgottenStart: 'Таймер не запущен сегодня',
+    timerForgottenStop: 'Таймер не остановлен',
+  },
   settings: {
     title: 'Настройки',
     profile: {

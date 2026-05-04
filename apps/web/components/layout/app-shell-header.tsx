@@ -1,11 +1,12 @@
 'use client';
 
 import { useEffect } from 'react';
-import { Bell, Globe2, LogOut, Menu, Search, User } from 'lucide-react';
+import { Globe2, LogOut, Menu, Search, User } from 'lucide-react';
 import Link from 'next/link';
 
 import { Language } from '@lumicore/shared-types';
 
+import { NotificationBell } from '@/components/notifications/notification-bell';
 import { useLogout } from '@/hooks/use-auth-actions';
 import { useUpdateProfile } from '@/hooks/use-update-profile';
 import { useTranslation } from '@/hooks/use-translation';
@@ -81,11 +82,7 @@ export function AppShellHeader({ onMenuToggle, onSearchOpen }: Props): JSX.Eleme
             {language}
           </div>
 
-          {/* Alerts — Phase 2 placeholder */}
-          <div className="pill gap-2 text-text-muted select-none">
-            <Bell className="h-3.5 w-3.5" />
-            Alerts
-          </div>
+          <NotificationBell />
 
           {/* Language toggle */}
           <button

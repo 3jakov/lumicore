@@ -225,6 +225,16 @@ export const et = {
     noEmployees: 'Töötajaid pole',
     failedToSave: 'Puudumise salvestamine ebaõnnestus',
   },
+  notifications: {
+    title: 'Teavitused',
+    open: 'Ava teavitused',
+    loading: 'Laadin teavitusi...',
+    empty: 'Teavitusi pole',
+    unread: 'lugemata',
+    markAllRead: 'Märgi kõik loetuks',
+    timerForgottenStart: 'Taimerit ei ole täna käivitatud',
+    timerForgottenStop: 'Taimerit ei ole peatatud',
+  },
   settings: {
     title: 'Seaded',
     profile: {

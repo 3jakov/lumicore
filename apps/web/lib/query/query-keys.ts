@@ -63,4 +63,8 @@ export const queryKeys = {
     my: ['absences', 'my'] as const,
     list: (filters?: ListFilters) => ['absences', 'list', filters] as const,
   },
+  notifications: {
+    all: ['notifications'] as const,
+    mine: ['notifications', 'mine'] as const,
+  },
 };
