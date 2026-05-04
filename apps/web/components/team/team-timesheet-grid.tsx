@@ -101,6 +101,11 @@ export function TeamTimesheetGrid(): JSX.Element {
     employeeId?: number;
     date?: string;
   }>({ open: false });
+  const [deleteModal, setDeleteModal] = useState<{
+    open: boolean;
+    absenceId?: number;
+    code?: string;
+  }>({ open: false });
 
   const { dateFrom, dateTo } = useMemo(() => monthBounds(year, month), [year, month]);
   const { data, isLoading, isError, refetch } = useTeamTimesheet(dateFrom, dateTo);
@@ -233,9 +238,14 @@ export function TeamTimesheetGrid(): JSX.Element {
                 key={row.employee_id}
                 row={row}
                 dates={dates}
-                onAbsenceCellClick={(employeeId, date) =>
-                  setAbsenceModal({ open: true, employeeId, date })
-                }
+                onCellClick={(employeeId, date, absenceId) => {
+                  if (absenceId !== undefined) {
+                    const entry = row.day_absences[date];
+                    setDeleteModal({ open: true, absenceId, code: entry?.code });
+                  } else {
+                    setAbsenceModal({ open: true, employeeId, date });
+                  }
+                }}
               />
             ))}
             {rows.length === 0 && (
@@ -258,6 +268,8 @@ export function TeamTimesheetGrid(): JSX.Element {
         defaultDate={absenceModal.date}
         employees={employees}
       />
+      {/* TODO(Codex): replace with <AbsenceDeleteModal> */}
+      {deleteModal.open && null}
     </div>
   );
 }
@@ -267,11 +279,11 @@ export function TeamTimesheetGrid(): JSX.Element {
 function TimesheetRow({
   row,
   dates,
-  onAbsenceCellClick,
+  onCellClick,
 }: {
   row: TeamTimesheetRow;
   dates: string[];
-  onAbsenceCellClick: (employeeId: number, date: string) => void;
+  onCellClick: (employeeId: number, date: string, absenceId?: number) => void;
 }): JSX.Element {
   const overtimeSeconds = row.overtime_seconds;
   const overtimeHours = fmtHoursAlways(Math.abs(overtimeSeconds));
@@ -292,7 +304,8 @@ function TimesheetRow({
         const seconds = row.day_seconds[date] ?? 0;
         const weekend = isWeekend(date);
         const todayCol = isToday(date);
-        const absenceCode = weekend ? undefined : row.day_absences?.[date];
+        const absenceEntry = weekend ? undefined : row.day_absences?.[date];
+        const absenceCode = absenceEntry?.code;
         const hasHours = seconds > 0;
         const cellContent = hasHours ? (
           <span className="inline-flex items-center justify-center">
@@ -323,7 +336,7 @@ function TimesheetRow({
             ) : (
               <button
                 type="button"
-                onClick={() => onAbsenceCellClick(row.employee_id, date)}
+                onClick={() => onCellClick(row.employee_id, date, absenceEntry?.id)}
                 className="flex min-h-5 w-full cursor-pointer items-center justify-center rounded-md px-1 transition hover:ring-1 hover:ring-accent-400"
               >
                 {cellContent}

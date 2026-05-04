@@ -145,8 +145,8 @@ export interface TeamTimesheetRow {
   avatar_color: string;
   /** YYYY-MM-DD → tracked seconds (only days with tracked time are present) */
   day_seconds: Record<string, number>;
-  /** YYYY-MM-DD → absence display code ("Б", "СД", "ОО"...) */
-  day_absences: Record<string, string>;
+  /** YYYY-MM-DD → absence entry with id (for delete) and display code */
+  day_absences: Record<string, { id: number; code: string }>;
   /** Count of Mon–Fri calendar days in the requested range */
   working_days: number;
   /** working_days × (norm_hours_per_week / 5) × 3600 */

@@ -515,7 +515,7 @@ export class TimeTrackingService {
 
       // Build day_absences map; use Set to avoid double-counting overlapping absences
       const empAbsences = absencesByEmployee.get(emp.id) ?? [];
-      const dayAbsences: Record<string, string> = {};
+      const dayAbsences: Record<string, { id: number; code: string }> = {};
       const normReducingDatesSet = new Set<string>();
 
       for (const absence of empAbsences) {
@@ -525,7 +525,7 @@ export class TimeTrackingService {
 
         for (const date of workingDaysList) {
           if (date >= abFrom && date <= abTo) {
-            dayAbsences[date] = meta.code;
+            dayAbsences[date] = { id: absence.id, code: meta.code };
             if (meta.reduces_norm) normReducingDatesSet.add(date);
           }
         }
