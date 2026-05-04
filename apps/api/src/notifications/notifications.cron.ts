@@ -72,9 +72,8 @@ export class NotificationsCron {
     const dayStart = tallinnDayStart(today);
     const dayEnd = tallinnDayEnd(today);
 
-    // Only consider timers started today — avoids spamming for stale timers
-    // that started on a previous day. (A stale timer will still appear daily
-    // until stopped, but at most once per day thanks to dedup below.)
+    // Only consider timers started today — stale timers from previous days are
+    // excluded entirely and will not trigger notifications.
     const running = await this.prisma.timeEntry.findMany({
       where: { ended_at: null, started_at: { gte: dayStart, lte: dayEnd } },
       select: { employee_id: true },
