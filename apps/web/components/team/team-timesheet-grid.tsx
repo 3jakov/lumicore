@@ -1,9 +1,10 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { ChevronLeft, ChevronRight, Download, AlertCircle } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Download, AlertCircle, Plus } from 'lucide-react';
 import type { TeamTimesheetRow } from '@lumicore/shared-types';
 
+import { AbsenceFormModal } from '@/components/team/absence-form-modal';
 import { useTeamTimesheet } from '@/hooks/use-team-timesheet';
 import { apiClient } from '@/lib/api-client';
 
@@ -95,6 +96,11 @@ export function TeamTimesheetGrid(): JSX.Element {
   const [year, setYear] = useState(today.getFullYear());
   const [month, setMonth] = useState(today.getMonth());
   const [isExporting, setIsExporting] = useState(false);
+  const [absenceModal, setAbsenceModal] = useState<{
+    open: boolean;
+    employeeId?: number;
+    date?: string;
+  }>({ open: false });
 
   const { dateFrom, dateTo } = useMemo(() => monthBounds(year, month), [year, month]);
   const { data, isLoading, isError, refetch } = useTeamTimesheet(dateFrom, dateTo);
@@ -154,21 +160,32 @@ export function TeamTimesheetGrid(): JSX.Element {
   }
 
   const { dates, rows } = data;
+  const employees = rows.map((row) => ({ id: row.employee_id, full_name: row.employee_name }));
 
   return (
     <div className="space-y-4">
       {/* Toolbar */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <MonthPicker year={year} month={month} onChange={(y, m) => { setYear(y); setMonth(m); }} />
-        <button
-          type="button"
-          onClick={() => void handleExport()}
-          disabled={isExporting}
-          className="inline-flex items-center gap-2 rounded-full border border-border-subtle bg-surface-1 px-4 py-2 text-sm font-semibold text-text-secondary transition hover:border-border-strong hover:text-text-primary disabled:opacity-50"
-        >
-          <Download className="h-4 w-4" />
-          {isExporting ? 'Экспорт...' : 'Экспорт в Excel'}
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setAbsenceModal({ open: true })}
+            className="inline-flex items-center gap-2 rounded-full border border-border-subtle bg-surface-1 px-4 py-2 text-sm font-semibold text-text-secondary transition hover:border-border-strong hover:text-text-primary"
+          >
+            <Plus className="h-4 w-4" />
+            + Отсутствие
+          </button>
+          <button
+            type="button"
+            onClick={() => void handleExport()}
+            disabled={isExporting}
+            className="inline-flex items-center gap-2 rounded-full border border-border-subtle bg-surface-1 px-4 py-2 text-sm font-semibold text-text-secondary transition hover:border-border-strong hover:text-text-primary disabled:opacity-50"
+          >
+            <Download className="h-4 w-4" />
+            {isExporting ? 'Экспорт...' : 'Экспорт в Excel'}
+          </button>
+        </div>
       </div>
 
       {/* Grid */}
@@ -212,7 +229,14 @@ export function TeamTimesheetGrid(): JSX.Element {
           </thead>
           <tbody>
             {rows.map((row: TeamTimesheetRow) => (
-              <TimesheetRow key={row.employee_id} row={row} dates={dates} />
+              <TimesheetRow
+                key={row.employee_id}
+                row={row}
+                dates={dates}
+                onAbsenceCellClick={(employeeId, date) =>
+                  setAbsenceModal({ open: true, employeeId, date })
+                }
+              />
             ))}
             {rows.length === 0 && (
               <tr>
@@ -227,6 +251,13 @@ export function TeamTimesheetGrid(): JSX.Element {
           </tbody>
         </table>
       </div>
+      <AbsenceFormModal
+        open={absenceModal.open}
+        onClose={() => setAbsenceModal({ open: false })}
+        defaultEmployeeId={absenceModal.employeeId}
+        defaultDate={absenceModal.date}
+        employees={employees}
+      />
     </div>
   );
 }
@@ -236,9 +267,11 @@ export function TeamTimesheetGrid(): JSX.Element {
 function TimesheetRow({
   row,
   dates,
+  onAbsenceCellClick,
 }: {
   row: TeamTimesheetRow;
   dates: string[];
+  onAbsenceCellClick: (employeeId: number, date: string) => void;
 }): JSX.Element {
   const overtimeSeconds = row.overtime_seconds;
   const overtimeHours = fmtHoursAlways(Math.abs(overtimeSeconds));
@@ -259,6 +292,21 @@ function TimesheetRow({
         const seconds = row.day_seconds[date] ?? 0;
         const weekend = isWeekend(date);
         const todayCol = isToday(date);
+        const absenceCode = weekend ? undefined : row.day_absences?.[date];
+        const hasHours = seconds > 0;
+        const cellContent = hasHours ? (
+          <span className="inline-flex items-center justify-center">
+            {fmtHours(seconds)}
+            {absenceCode && (
+              <span className="ml-0.5 text-[10px] font-semibold text-amber-600">
+                {absenceCode}
+              </span>
+            )}
+          </span>
+        ) : absenceCode ? (
+          <span className="text-xs font-semibold text-amber-700">{absenceCode}</span>
+        ) : null;
+
         return (
           <td
             key={date}
@@ -270,14 +318,24 @@ function TimesheetRow({
                 : 'text-text-secondary'
             }`}
           >
-            {fmtHours(seconds)}
+            {weekend ? (
+              fmtHours(seconds)
+            ) : (
+              <button
+                type="button"
+                onClick={() => onAbsenceCellClick(row.employee_id, date)}
+                className="flex min-h-5 w-full cursor-pointer items-center justify-center rounded-md px-1 transition hover:ring-1 hover:ring-accent-400"
+              >
+                {cellContent}
+              </button>
+            )}
           </td>
         );
       })}
       {/* Summary */}
       <td className="px-2 py-2 text-center tabular-nums text-text-secondary">{row.working_days}</td>
       <td className="px-2 py-2 text-center tabular-nums text-text-secondary">
-        {fmtHoursAlways(row.norm_seconds)}
+        {fmtHoursAlways(row.adjusted_norm_seconds)}
       </td>
       <td className={`px-2 py-2 text-center tabular-nums ${overtimeClass}`}>
         {overtimeSign}{overtimeHours}

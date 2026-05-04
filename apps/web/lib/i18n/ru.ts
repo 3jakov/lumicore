@@ -214,6 +214,19 @@ export const ru = {
       },
     },
   },
+  absences: {
+    add: 'Добавить отсутствие',
+    description: 'Отметьте отсутствие сотрудника на выбранные даты.',
+    employee: 'Сотрудник',
+    type: 'Тип отсутствия',
+    dateFrom: 'Дата начала',
+    dateTo: 'Дата окончания',
+    comment: 'Комментарий',
+    save: 'Сохранить',
+    cancel: 'Отмена',
+    noEmployees: 'Сотрудников нет',
+    failedToSave: 'Не удалось сохранить отсутствие',
+  },
   settings: {
     title: 'Настройки',
     profile: {

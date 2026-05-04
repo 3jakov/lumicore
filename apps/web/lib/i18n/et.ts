@@ -212,6 +212,19 @@ export const et = {
       },
     },
   },
+  absences: {
+    add: 'Lisa puudumine',
+    description: 'Märgi töötaja puudumine valitud kuupäevadele.',
+    employee: 'Töötaja',
+    type: 'Puudumise tüüp',
+    dateFrom: 'Alguskuupäev',
+    dateTo: 'Lõppkuupäev',
+    comment: 'Kommentaar',
+    save: 'Salvesta',
+    cancel: 'Tühista',
+    noEmployees: 'Töötajaid pole',
+    failedToSave: 'Puudumise salvestamine ebaõnnestus',
+  },
   settings: {
     title: 'Seaded',
     profile: {
