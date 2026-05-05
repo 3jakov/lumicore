@@ -4,6 +4,7 @@ import { useState, useMemo } from 'react';
 import { ChevronLeft, ChevronRight, Download, AlertCircle, Plus } from 'lucide-react';
 import type { TeamTimesheetRow } from '@lumicore/shared-types';
 
+import { AbsenceDeleteModal } from '@/components/team/absence-delete-modal';
 import { AbsenceFormModal } from '@/components/team/absence-form-modal';
 import { useTeamTimesheet } from '@/hooks/use-team-timesheet';
 import { apiClient } from '@/lib/api-client';
@@ -268,8 +269,14 @@ export function TeamTimesheetGrid(): JSX.Element {
         defaultDate={absenceModal.date}
         employees={employees}
       />
-      {/* TODO(Codex): replace with <AbsenceDeleteModal> */}
-      {deleteModal.open && null}
+      {deleteModal.open && deleteModal.absenceId !== undefined && (
+        <AbsenceDeleteModal
+          open={deleteModal.open}
+          absenceId={deleteModal.absenceId}
+          code={deleteModal.code ?? ''}
+          onClose={() => setDeleteModal({ open: false })}
+        />
+      )}
     </div>
   );
 }

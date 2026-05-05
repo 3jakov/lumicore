@@ -226,6 +226,10 @@ export const ru = {
     cancel: 'Отмена',
     noEmployees: 'Сотрудников нет',
     failedToSave: 'Не удалось сохранить отсутствие',
+    deleteTitle: 'Удалить отсутствие',
+    deleteConfirm: 'Удалить отсутствие',
+    delete: 'Удалить',
+    deleting: 'Удаление...',
   },
   notifications: {
     title: 'Уведомления',

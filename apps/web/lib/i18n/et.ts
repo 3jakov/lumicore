@@ -224,6 +224,10 @@ export const et = {
     cancel: 'Tühista',
     noEmployees: 'Töötajaid pole',
     failedToSave: 'Puudumise salvestamine ebaõnnestus',
+    deleteTitle: 'Kustuta puudumine',
+    deleteConfirm: 'Kas soovid kustutada puudumise',
+    delete: 'Kustuta',
+    deleting: 'Kustutan...',
   },
   notifications: {
     title: 'Teavitused',
