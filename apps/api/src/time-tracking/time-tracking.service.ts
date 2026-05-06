@@ -316,6 +316,22 @@ export class TimeTrackingService {
     return this.toDetail(updated);
   }
 
+  // ─── Active timer (self) ──────────────────────────────────────────────────
+
+  /**
+   * GET /api/v1/time-entries/active
+   * Returns the authenticated employee's currently running timer, or null.
+   */
+  async findActive(employeeId: number): Promise<TimeEntryDetail | null> {
+    const entry = await this.prisma.timeEntry.findFirst({
+      where: { employee_id: employeeId, ended_at: null },
+      include: { pauses: true },
+      orderBy: { started_at: 'desc' },
+    });
+    if (!entry) return null;
+    return this.toDetail(entry);
+  }
+
   // ─── List (self) ───────────────────────────────────────────────────────────
 
   /**

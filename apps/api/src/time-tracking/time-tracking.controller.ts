@@ -119,6 +119,18 @@ export class TimeTrackingController {
     return this.timeTrackingService.getReportDetailed(dto);
   }
 
+  /**
+   * GET /api/v1/time-entries/active
+   * Returns the authenticated employee's currently running timer, or null.
+   * Used by mobile to hydrate the timer screen on startup.
+   */
+  @Get('active')
+  findActive(
+    @CurrentUserDecorator() user: CurrentUser,
+  ): Promise<TimeEntryDetail | null> {
+    return this.timeTrackingService.findActive(user.id);
+  }
+
   // ─── List ─────────────────────────────────────────────────────────────────
 
   /**
