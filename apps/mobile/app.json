@@ -1,0 +1,36 @@
+{
+  "expo": {
+    "name": "Lumicore",
+    "slug": "lumicore",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0a0a0a"
+    },
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "ee.lumico.lumicore"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0a0a0a"
+      },
+      "package": "ee.lumico.lumicore"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store"
+    ],
+    "scheme": "lumicore",
+    "extra": {
+      "apiUrl": "http://localhost:3001/api/v1",
+      "wsUrl": "ws://localhost:3001"
+    }
+  }
+}
