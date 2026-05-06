@@ -1,7 +1,7 @@
 # CLAUDE.md — AI Development Guidelines
 **Project:** LUMICO Field & Production Management Platform
-**For:** Claude Code (backend) + Codex (frontend)
-**Last updated:** 2026-04-08
+**For:** Claude Code (backend + mobile) + Codex (web frontend)
+**Last updated:** 2026-05-06
 
 ---
 
@@ -70,6 +70,7 @@ This file is the primary reference for AI agents working on this codebase. Read 
 |---|---|---|
 | `apps/api/` — entire NestJS backend | Claude Code | All API endpoints, DB schema, business logic |
 | `apps/web/` — entire Next.js frontend | Codex | All UI components, pages, hooks, client state |
+| `apps/mobile/` — React Native (Expo) app | Claude Code | Worker-first mobile app, Expo SDK 55 |
 | `packages/shared-types/` | Both | Claude Code defines types; Codex consumes them. PRs from either. |
 | `docs/` | Both | Either agent can update documentation |
 | `docker-compose.yml` | Claude Code | Infrastructure files |
@@ -636,12 +637,104 @@ pnpm --filter web dev   # runs on :3000
 
 ---
 
+## Mobile App — Claude Code Guidelines (apps/mobile)
+
+### Stack
+
+- **Expo SDK 55** (React Native 0.76.7) with **Expo Router** (file-based, like Next.js App Router)
+- **NativeWind v4** for Tailwind-based styling (same class names as web where possible)
+- **Stack navigator** as primary navigation — no tabs. Home screen is the hub; workers drill down.
+- **expo-secure-store** for JWT tokens (iOS Keychain / Android Keystore — never AsyncStorage)
+- **Zustand** for auth state only (`src/store/auth.store.ts`)
+- **TanStack React Query v5** for server state (same library as web)
+- **`src/lib/api-client.ts`** — fetch wrapper with `setTokenProvider()` injection
+
+### Project Layout
+
+```
+apps/mobile/
+├── app/                     # Expo Router routes
+│   ├── _layout.tsx          # Root: QueryClient + SafeArea + AuthGate redirect
+│   ├── (auth)/login.tsx     # Login screen
+│   └── (app)/               # Authenticated stack
+│       ├── index.tsx        # Home hub
+│       ├── timer.tsx        # Timer screen
+│       ├── camera.tsx       # Camera capture
+│       └── ...              # Other screens
+├── src/
+│   ├── lib/api-client.ts    # API wrapper
+│   ├── store/auth.store.ts  # Zustand auth store
+│   ├── hooks/               # React Query hooks per domain
+│   ├── components/          # Components grouped by domain (timer/, camera/, ...)
+│   └── theme/colors.ts      # JS color constants matching Tailwind tokens
+├── tailwind.config.js       # Dark theme tokens
+├── metro.config.js          # Monorepo: watchFolders + withNativeWind
+└── tsconfig.json            # "types": ["nativewind/types"] required for className
+```
+
+### API Client Rules
+
+`apiClient.post` and `apiClient.patch` accept `options?: { body?: unknown }`:
+
+```typescript
+// ✅ Correct
+apiClient.post('/time-entries', { body: dto })
+apiClient.post('/time-entries/:id/pause')        // no body — omit second arg
+apiClient.patch('/employees/me', { body: { language: 'ru' } })
+apiClient.get('/time-entries/active')
+
+// ❌ Wrong — DTO passed directly as second arg
+apiClient.post('/time-entries', dto)
+```
+
+### NativeWind Requirement
+
+**Always add `"types": ["nativewind/types"]` to `compilerOptions` in `tsconfig.json`.**
+Without it, TypeScript rejects `className` on all RN components.
+
+### Design Tokens
+
+| Token | Value | Use |
+|---|---|---|
+| `bg-surface-0` | `#111827` | Screen background |
+| `bg-surface-1` | `#1F2937` | Cards |
+| `bg-surface-2` | `#374151` | Inputs, secondary buttons |
+| `text-text-primary` | `#F9FAFB` | Primary text |
+| `text-text-muted` | `#9CA3AF` | Labels, placeholders |
+| `text-accent-500` | `#F59E0B` | Links, active states |
+| `bg-timer-active` | `#16A34A` | Start button |
+| `bg-timer-stop` | `#DC2626` | Stop button, errors |
+
+### Milestone Reference
+
+See `docs/MOBILE_IMPLEMENTATION_PLAN.md` for full scope, milestones M0–M5, and architecture decisions.
+
+Current status:
+- **M0 Foundation** ✅ — auth, routing, NativeWind, monorepo integration
+- **M1 Timer MVP** ✅ — `GET /time-entries/active` + full timer screen
+- **M2 Camera MVP** 🔜
+- **M3 Projects + Tasks** 🔜
+- **M4 My Timesheet** 🔜
+- **M5 Push Notifications** 🔜
+
+### Commit Scope
+
+Use scope `mobile` for `apps/mobile`-only changes:
+```
+feat(mobile): add camera capture with GPS
+feat(time-tracking): add project_name to TimeEntryDetail response
+```
+
+---
+
 ## Reference Documents
 
 - Full PRD (Phase 1): `docs/PRD.md`
 - Tech stack decisions and rationale: `docs/TECH_STACK.md`
 - System architecture and data flow: `docs/ARCHITECTURE.md`
 - Module handoff review checklist: `docs/MODULE_HANDOFF_CHECKLIST.md`
+- Mobile implementation plan (Phase 2): `docs/MOBILE_IMPLEMENTATION_PLAN.md`
+- Mobile readiness rules: `docs/MOBILE_READINESS.md`
 - Prisma schema: `apps/api/prisma/schema.prisma`
 - API base URL: `http://localhost:3001/api/v1` (development)
 

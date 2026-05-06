@@ -1,9 +1,9 @@
 # Mobile Readiness — LUMICO Phase 1
-**Version:** 1.0
-**Date:** 2026-04-05
-**Status:** Active — Phase 1 engineering reference
+**Version:** 1.1
+**Date:** 2026-05-06
+**Status:** Reference — native app (Phase 2) is now in development
 
-> **Scope of this document:** Phase 1 is a PWA. This document defines what the Phase 1 implementation must preserve so that a future native iOS/Android app can reuse the same NestJS backend with minimal rework. It does not propose building native apps now.
+> **Scope of this document:** This document defined what Phase 1 must preserve for a future native app. The native app (Expo SDK 55, `apps/mobile/`) is now being built in Phase 2. Use `docs/MOBILE_IMPLEMENTATION_PLAN.md` for the active Phase 2 plan. This document remains useful as a backend API contract checklist.
 
 ---
 
