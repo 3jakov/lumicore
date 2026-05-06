@@ -15,7 +15,7 @@ export function ActiveTimerCard({ entry }: Props) {
   const isLoading = pause.isPending || resume.isPending || stop.isPending;
   const error = pause.error ?? resume.error ?? stop.error;
 
-  // Sum seconds from all *closed* pauses only
+  // Sum seconds from all *closed* pauses
   const closedPauseSec = entry.pauses.reduce((acc, p) => {
     if (p.pause_end == null) return acc;
     return (
@@ -25,6 +25,16 @@ export function ActiveTimerCard({ entry }: Props) {
       )
     );
   }, 0);
+
+  // When paused: also subtract the current open-pause duration so the frozen
+  // clock shows "active seconds before pause started", not "active + pause time".
+  const openPause = entry.pauses.find((p) => p.pause_end == null);
+  const openPauseSec = openPause
+    ? Math.floor((Date.now() - new Date(openPause.pause_start).getTime()) / 1000)
+    : 0;
+
+  // Total seconds to subtract from the wall-clock elapsed
+  const totalPausedSec = closedPauseSec + (entry.is_paused ? openPauseSec : 0);
 
   return (
     <View className="mx-4 rounded-2xl bg-surface-1 p-5">
@@ -49,7 +59,7 @@ export function ActiveTimerCard({ entry }: Props) {
       {/* Elapsed clock */}
       <ElapsedClock
         startedAt={entry.started_at}
-        pausedSeconds={closedPauseSec}
+        pausedSeconds={totalPausedSec}
         frozen={entry.is_paused}
         className="mt-4 text-center text-5xl font-bold tabular-nums text-text-primary"
       />

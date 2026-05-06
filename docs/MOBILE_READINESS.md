@@ -337,25 +337,23 @@ Use this checklist when reviewing any Phase 1 PR that touches auth, API contract
 
 ## 7. Final Recommendation
 
-**The Phase 1 backend is 85% ready for a future native app today.** The core architecture — REST API with versioning, JWT Bearer tokens, OTP login, presigned S3 uploads, Socket.io with JWT handshake — is already correct. A React Native app could consume the Phase 1 API with minimal friction.
+**Phase 2 status (2026-05-06): the native app is now being built** — `apps/mobile/` (Expo SDK 55, React Native 0.76.7). M0 (foundation) and M1 (Timer MVP) are complete. The Phase 1 backend required zero breaking changes; only one additive endpoint was needed (`GET /time-entries/active`).
 
-**The one change that must be made in Phase 1 (not deferred):**
+**What Phase 1 got right (confirmed working in native app):**
+- Dual-mode refresh token (cookie + body) — mobile uses `body.refresh_token` via SecureStore ✅
+- JWT Bearer auth — mobile sends `Authorization: Bearer <token>` on every request ✅
+- Presigned S3 upload — two-step flow works identically in React Native ✅
+- CORS allows no-Origin requests — native app connects without issues ✅
+- Socket.io `auth: { token }` handshake — works in `socket.io-client` for RN ✅
 
-> `POST /auth/refresh` must support refresh token in the request body, not only from the httpOnly cookie. If this is not done in Phase 1, a native app will be completely unable to maintain a session without a backend change — which requires a re-deploy and a coordinated app store update.
+**Remaining Phase 2 work (native-specific):**
+- `NotificationService`: extend with APNs + FCM transport via Expo Push Service (M5)
+- Device token registration endpoint: `POST /notifications/device-token` (M5)
+- Camera + GPS: `expo-camera` + `expo-location`, same S3 flow (M2)
 
-**Everything else in this document is about avoiding habits** (business logic in Server Actions, binary multipart uploads, hardcoded origins) that would create rework later. None of it requires new features — just discipline in how Phase 1 is implemented.
-
-**Estimated effort to add native app support in Phase 2 (given Phase 1 follows this document):**
-- `NotificationService`: add APNs + FCM transport (~2 days)
-- Device token registration endpoint: 1 endpoint (~0.5 days)
-- React Native app shell consuming existing API: most of the work is UI, not backend
-
-**If Phase 1 does not follow this document:**
-- Refresh token rework: backend change + re-deploy + forced app update cycle
-- Server Action mutations: rewrite to NestJS endpoints before native app can function
-- CORS blockage: silent failures in native app with no clear error message
+**Use `docs/MOBILE_IMPLEMENTATION_PLAN.md` for the active Phase 2 milestone plan.**
 
 ---
 
-*Document maintained by LUMICO development team. Last updated: 2026-04-05.*
-*Read alongside: CLAUDE.md, docs/TECH_STACK.md, docs/ARCHITECTURE.md*
+*Document maintained by LUMICO development team. Last updated: 2026-05-06.*
+*Read alongside: CLAUDE.md, docs/MOBILE_IMPLEMENTATION_PLAN.md, docs/TECH_STACK.md*

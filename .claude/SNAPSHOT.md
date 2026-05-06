@@ -1,5 +1,5 @@
 # SNAPSHOT — Lumicore (Development)
-**Обновлено:** 2026-05-06
+**Обновлено:** 2026-05-06 (post-review fixes)
 **Ветка:** `feat/scope-update-chat-docack`
 
 ---
@@ -103,9 +103,9 @@
 - [ ] Search Phase 2 — фильтры по типу, история поиска
 
 ## Git
-- Working tree: чистый (кроме `.codex` untracked)
+- Working tree: `.codex` untracked (игнорируется); артефакт `C:gitlumicoreappsmobileassets*` удалён
 - Ветка: `feat/scope-update-chat-docack`
-- ~88 коммитов, не запушено в remote
+- ~89 коммитов, не запушено в remote
 - typecheck: ✅ api + web + mobile зелёный
 - tests: ✅ 106 unit tests passing (7 suites)
 
@@ -113,3 +113,4 @@
 - `apps/mobile/src/lib/api-client.ts` — `post(path, { body })` не `post(path, dto)` напрямую
 - `TimeEntryDetail` не несёт `project_name` — `ActiveTimerCard` показывает `#project_id`. Добавить в M3 pass
 - NativeWind types: `"types": ["nativewind/types"]` в tsconfig обязателен для `className` на RN компонентах
+- **Elapsed bug (fixed):** при паузе `ActiveTimerCard` теперь передаёт `closedPauseSec + openPauseSec` в `ElapsedClock`, чтобы замороженные часы показывали активное время до паузы, а не активное + время паузы

@@ -176,6 +176,7 @@ GET    /api/v1/tasks/templates        # All task templates
 # Time Tracking
 GET    /api/v1/time-entries           # List (filter by employee, project, date)
 POST   /api/v1/time-entries           # Create (timer start or manual entry)
+GET    /api/v1/time-entries/active    # Own currently-running timer or null (used by mobile)
 GET    /api/v1/time-entries/:id
 PATCH  /api/v1/time-entries/:id
 POST   /api/v1/time-entries/:id/pause
