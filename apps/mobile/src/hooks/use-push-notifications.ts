@@ -45,9 +45,10 @@ async function registerForPushNotificationsAsync(): Promise<string | null> {
   // projectId is required for standalone/EAS builds (not just Expo Go).
   // Read from app.json extra.eas.projectId; skip registration if it's still
   // the placeholder value so dev builds don't pollute the push service.
-  const projectId: string | undefined =
-    (Constants.expoConfig?.extra as Record<string, unknown> | undefined)
-      ?.eas?.projectId as string | undefined;
+  const extra = Constants.expoConfig?.extra as
+    | { eas?: { projectId?: string } }
+    | undefined;
+  const projectId = extra?.eas?.projectId;
 
   if (!projectId || projectId === 'REPLACE_WITH_EAS_PROJECT_ID') {
     // Dev environment without a real EAS project — fall through gracefully.
