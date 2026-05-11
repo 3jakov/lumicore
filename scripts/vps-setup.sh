@@ -73,6 +73,27 @@ certbot certonly \
   --register-unsafely-without-email \
   -d "$DOMAIN"
 
+# ─── Certbot renewal hooks ────────────────────────────────────────────────────
+# Standalone renewal requires port 80 to be free. The pre-hook stops the nginx
+# container; the post-hook starts it again. Downtime is a few seconds, at most
+# twice a year when the cert actually needs renewal.
+info "Installing certbot renewal hooks"
+
+mkdir -p /etc/letsencrypt/renewal-hooks/pre /etc/letsencrypt/renewal-hooks/post
+
+cat > /etc/letsencrypt/renewal-hooks/pre/stop-nginx.sh <<'HOOK'
+#!/bin/sh
+docker compose -f /opt/lumicore/docker-compose.prod.yml stop nginx
+HOOK
+
+cat > /etc/letsencrypt/renewal-hooks/post/start-nginx.sh <<'HOOK'
+#!/bin/sh
+docker compose -f /opt/lumicore/docker-compose.prod.yml start nginx
+HOOK
+
+chmod +x /etc/letsencrypt/renewal-hooks/pre/stop-nginx.sh \
+          /etc/letsencrypt/renewal-hooks/post/start-nginx.sh
+
 # Auto-renew via systemd timer (certbot installs it automatically on Ubuntu)
 info "Enabling certbot auto-renewal"
 systemctl enable certbot.timer
