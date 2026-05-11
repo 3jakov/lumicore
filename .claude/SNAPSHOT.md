@@ -1,11 +1,11 @@
 # SNAPSHOT — Lumicore (Development)
-**Обновлено:** 2026-05-11 (M4 done)
+**Обновлено:** 2026-05-11 (M5 done — все милстоуны закрыты)
 **Ветка:** `feat/scope-update-chat-docack`
 
 ---
 
 ## 🎯 Phase 1 статус: ЗАВЕРШЁН ✅
-## 📱 Phase 2 — Mobile App: в работе (M0–M4 готовы)
+## 📱 Phase 2 — Mobile App: M0–M5 ВСЕ ГОТОВЫ ✅
 
 ---
 
@@ -65,12 +65,14 @@
 | M2 — Camera MVP (expo-camera, S3, GPS) | ✅ | `9543ea9` |
 | M3 — Projects + Tasks + Photos screens | ✅ | `78984ec` |
 | M4 — My Timesheet | ✅ | `8cdd594` |
-| M5 — Push Notifications (APNs/FCM) | 🔜 | — |
+| M5 — Push Notifications (APNs/FCM) | ✅ | `7ce7f10` |
 
 ## Последние коммиты
 
 | Hash | Описание |
 |---|---|
+| `7ce7f10` | feat(mobile): M5 — push notifications via Expo |
+| `2690e04` | fix(mobile): use local calendar date for today highlight in timesheet |
 | `8cdd594` | feat(mobile): M4 — my timesheet screen |
 | `78984ec` | feat(mobile): M3 projects, tasks, photos screens |
 | `9543ea9` | feat(mobile): M2 camera MVP — capture, GPS, S3 upload |
@@ -98,7 +100,7 @@
 - [x] **M2** — Camera: expo-camera + S3 presigned upload + GPS (`expo-location`) ✅
 - [x] **M3** — Projects list + Tasks list + Photos gallery ✅
 - [x] **M4** — My Timesheet (месячный грид, самостоятельный просмотр) ✅
-- [ ] **M5** — Push Notifications (Expo Notifications + APNs/FCM регистрация)
+- [x] **M5** — Push Notifications (Expo Notifications + APNs/FCM регистрация) ✅
 
 ### Phase 2 Backend (отложено)
 - [ ] Notifications: фильтр по ролям (сейчас уведомления всем `Aktiivne`)
