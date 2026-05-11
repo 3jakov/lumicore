@@ -63,7 +63,7 @@
 | M0 — Foundation (auth, navigation, NativeWind, monorepo) | ✅ | `92cde76` |
 | M1 — Timer MVP (active card, pause/resume/stop, start form) | ✅ | `b6edf6c` |
 | M2 — Camera MVP (expo-camera, S3, GPS) | ✅ | `9543ea9` |
-| M3 — Projects + Tasks (list screens) | 🔜 | — |
+| M3 — Projects + Tasks + Photos screens | ✅ | `78984ec` |
 | M4 — My Timesheet | 🔜 | — |
 | M5 — Push Notifications (APNs/FCM) | 🔜 | — |
 
@@ -71,6 +71,7 @@
 
 | Hash | Описание |
 |---|---|
+| `78984ec` | feat(mobile): M3 projects, tasks, photos screens |
 | `9543ea9` | feat(mobile): M2 camera MVP — capture, GPS, S3 upload |
 | `ad5dc3b` | fix(mobile): address post-M1 review findings |
 | `b6edf6c` | feat(time-tracking): add GET /time-entries/active + mobile M1 timer screen |
@@ -94,7 +95,7 @@
 
 ### Mobile Phase 2
 - [x] **M2** — Camera: expo-camera + S3 presigned upload + GPS (`expo-location`) ✅
-- [ ] **M3** — Projects list + Tasks list (read-only навигация)
+- [x] **M3** — Projects list + Tasks list + Photos gallery ✅
 - [ ] **M4** — My Timesheet (месячный грид, самостоятельный просмотр)
 - [ ] **M5** — Push Notifications (Expo Notifications + APNs/FCM регистрация)
 
