@@ -9,6 +9,31 @@ import type { Notification } from '@prisma/client';
 export class NotificationsService {
   constructor(private readonly prisma: PrismaService) {}
 
+  // ─── Device tokens ─────────────────────────────────────────────────────────
+
+  /** Upsert an Expo push token for the given employee (one row per unique token). */
+  async upsertDeviceToken(employeeId: number, token: string): Promise<void> {
+    await this.prisma.deviceToken.upsert({
+      where: { token },
+      update: { employee_id: employeeId },
+      create: { employee_id: employeeId, token },
+    });
+  }
+
+  /** Remove a specific Expo push token (called on logout, best-effort). */
+  async removeDeviceToken(token: string): Promise<void> {
+    await this.prisma.deviceToken.deleteMany({ where: { token } });
+  }
+
+  /** Return all stored Expo push tokens for an employee. */
+  async getTokensForEmployee(employeeId: number): Promise<string[]> {
+    const rows = await this.prisma.deviceToken.findMany({
+      where: { employee_id: employeeId },
+      select: { token: true },
+    });
+    return rows.map((r) => r.token);
+  }
+
   async findMine(employeeId: number): Promise<NotificationSummary[]> {
     const rows = await this.prisma.notification.findMany({
       where: { employee_id: employeeId },

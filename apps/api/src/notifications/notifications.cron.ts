@@ -5,6 +5,7 @@ import { PrismaService } from '../database/prisma.service';
 import { TimeTrackingGateway } from '../time-tracking/time-tracking.gateway';
 import { getTallinnToday, tallinnDayStart, tallinnDayEnd } from '../common/tallinn-date';
 import { NotificationsService } from './notifications.service';
+import { ExpoPushService } from './expo-push.service';
 
 @Injectable()
 export class NotificationsCron {
@@ -12,6 +13,7 @@ export class NotificationsCron {
     private readonly prisma: PrismaService,
     private readonly gateway: TimeTrackingGateway,
     private readonly notificationsService: NotificationsService,
+    private readonly expoPush: ExpoPushService,
   ) {}
 
   // ─── 8:00 weekdays — forgot to start ──────────────────────────────────────
@@ -61,6 +63,15 @@ export class NotificationsCron {
         data: { employee_id: emp.id, type: 'TimerForgottenStart' },
       });
       this.gateway.emitToEmployee(emp.id, 'notification:new', this.notificationsService.toSummary(n));
+
+      // Push notification to all registered devices
+      const tokens = await this.notificationsService.getTokensForEmployee(emp.id);
+      await this.expoPush.sendToTokens(tokens, {
+        title: 'Lumicore',
+        body: 'Вы не забыли запустить таймер?',
+        sound: 'default',
+        data: { type: 'TimerForgottenStart' },
+      });
     }
   }
 
@@ -95,6 +106,15 @@ export class NotificationsCron {
         data: { employee_id, type: 'TimerForgottenStop' },
       });
       this.gateway.emitToEmployee(employee_id, 'notification:new', this.notificationsService.toSummary(n));
+
+      // Push notification to all registered devices
+      const tokens = await this.notificationsService.getTokensForEmployee(employee_id);
+      await this.expoPush.sendToTokens(tokens, {
+        title: 'Lumicore',
+        body: 'Таймер всё ещё запущен. Не забудьте остановить!',
+        sound: 'default',
+        data: { type: 'TimerForgottenStop' },
+      });
     }
   }
 }

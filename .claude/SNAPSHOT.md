@@ -1,11 +1,11 @@
 # SNAPSHOT — Lumicore (Development)
-**Обновлено:** 2026-05-06 (M2 done)
+**Обновлено:** 2026-05-11 (M4 done)
 **Ветка:** `feat/scope-update-chat-docack`
 
 ---
 
 ## 🎯 Phase 1 статус: ЗАВЕРШЁН ✅
-## 📱 Phase 2 — Mobile App: в работе (M0 + M1 готовы)
+## 📱 Phase 2 — Mobile App: в работе (M0–M4 готовы)
 
 ---
 
@@ -64,13 +64,14 @@
 | M1 — Timer MVP (active card, pause/resume/stop, start form) | ✅ | `b6edf6c` |
 | M2 — Camera MVP (expo-camera, S3, GPS) | ✅ | `9543ea9` |
 | M3 — Projects + Tasks + Photos screens | ✅ | `78984ec` |
-| M4 — My Timesheet | 🔜 | — |
+| M4 — My Timesheet | ✅ | `8cdd594` |
 | M5 — Push Notifications (APNs/FCM) | 🔜 | — |
 
 ## Последние коммиты
 
 | Hash | Описание |
 |---|---|
+| `8cdd594` | feat(mobile): M4 — my timesheet screen |
 | `78984ec` | feat(mobile): M3 projects, tasks, photos screens |
 | `9543ea9` | feat(mobile): M2 camera MVP — capture, GPS, S3 upload |
 | `ad5dc3b` | fix(mobile): address post-M1 review findings |
@@ -96,7 +97,7 @@
 ### Mobile Phase 2
 - [x] **M2** — Camera: expo-camera + S3 presigned upload + GPS (`expo-location`) ✅
 - [x] **M3** — Projects list + Tasks list + Photos gallery ✅
-- [ ] **M4** — My Timesheet (месячный грид, самостоятельный просмотр)
+- [x] **M4** — My Timesheet (месячный грид, самостоятельный просмотр) ✅
 - [ ] **M5** — Push Notifications (Expo Notifications + APNs/FCM регистрация)
 
 ### Phase 2 Backend (отложено)
