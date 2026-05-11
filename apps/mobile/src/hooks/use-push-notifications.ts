@@ -1,8 +1,11 @@
 import { useEffect } from 'react';
 import { Platform } from 'react-native';
 import * as Notifications from 'expo-notifications';
+import * as SecureStore from 'expo-secure-store';
 import Constants from 'expo-constants';
 import { apiClient } from '@/lib/api-client';
+
+export const PUSH_TOKEN_KEY = 'lumicore_push_token';
 
 // Show notifications as banner + sound even while the app is foregrounded.
 Notifications.setNotificationHandler({
@@ -54,8 +57,10 @@ export function usePushNotifications(): void {
     let cancelled = false;
 
     registerForPushNotificationsAsync()
-      .then((token) => {
+      .then(async (token) => {
         if (cancelled || !token) return;
+        // Persist token so logout can unregister the device.
+        await SecureStore.setItemAsync(PUSH_TOKEN_KEY, token);
         // Fire-and-forget — a registration failure should never crash the app.
         apiClient
           .post('/notifications/device-token', { body: { token } })

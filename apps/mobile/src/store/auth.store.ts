@@ -3,6 +3,7 @@ import { create } from 'zustand';
 import type { AuthResponse, CurrentUser } from '@lumicore/shared-types';
 
 import { apiClient } from '@/lib/api-client';
+import { PUSH_TOKEN_KEY } from '@/hooks/use-push-notifications';
 
 const KEYS = {
   accessToken: 'lumicore_access_token',
@@ -56,9 +57,20 @@ export const useAuthStore = create<AuthState>((set, get) => {
     },
 
     async logout() {
+      // Unregister push token before clearing auth — while we still have a
+      // valid access token to authenticate the DELETE request.
+      try {
+        const pushToken = await SecureStore.getItemAsync(PUSH_TOKEN_KEY);
+        if (pushToken) {
+          await apiClient.delete('/notifications/device-token', { body: { token: pushToken } });
+          await SecureStore.deleteItemAsync(PUSH_TOKEN_KEY);
+        }
+      } catch { /* best effort — stale token on the server is acceptable */ }
+
       try {
         await apiClient.post('/auth/logout');
       } catch { /* best effort */ }
+
       await SecureStore.deleteItemAsync(KEYS.accessToken);
       await SecureStore.deleteItemAsync(KEYS.refreshToken);
       set({ accessToken: null, currentUser: null });

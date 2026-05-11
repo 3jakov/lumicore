@@ -37,6 +37,7 @@ class ApiClient {
       body: options?.body !== undefined ? JSON.stringify(options.body) : undefined,
     });
     if (!res.ok) throw new ApiError(res.status, await res.text());
+    if (res.status === 204) return undefined as T;
     return res.json() as Promise<T>;
   }
 
@@ -51,10 +52,11 @@ class ApiClient {
     return res.json() as Promise<T>;
   }
 
-  async delete<T>(path: string): Promise<T> {
+  async delete<T>(path: string, options?: RequestOptions): Promise<T> {
     const res = await fetch(`${BASE_URL}${path}`, {
       method: 'DELETE',
-      headers: { ...this.authHeader() },
+      headers: { 'Content-Type': 'application/json', ...this.authHeader(), ...options?.headers },
+      body: options?.body !== undefined ? JSON.stringify(options.body) : undefined,
     });
     if (!res.ok) throw new ApiError(res.status, await res.text());
     return undefined as T;
