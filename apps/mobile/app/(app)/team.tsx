@@ -72,7 +72,13 @@ export default function TimesheetScreen() {
     (data?.days ?? []).map((d) => [d.date, d.tracked_seconds]),
   );
 
-  const todayStr = today.toISOString().slice(0, 10);
+  // Use local calendar date — toISOString() is UTC and would give the wrong
+  // date in Tallinn for several hours around midnight.
+  const todayStr = [
+    today.getFullYear(),
+    String(today.getMonth() + 1).padStart(2, '0'),
+    String(today.getDate()).padStart(2, '0'),
+  ].join('-');
   const weeks = buildWeeks(year, month);
   const cellW = Math.floor((width - 32 - 6) / 7); // 32px padding, 6px gaps
 
