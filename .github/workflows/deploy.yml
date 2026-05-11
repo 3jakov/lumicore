@@ -59,7 +59,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Copy docker-compose.prod.yml to VPS
+      # Substitute real domain before copying nginx.conf to the server.
+      # Requires the DOMAIN secret, e.g. "app.lumico.ee"
+      - name: Substitute domain in nginx.conf
+        run: sed -i "s/YOUR_DOMAIN/${{ secrets.DOMAIN }}/g" nginx/nginx.conf
+
+      - name: Copy compose + nginx config to VPS
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.VPS_HOST }}
@@ -75,6 +80,7 @@ jobs:
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
+            set -e
             cd /opt/lumicore
             echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
             export IMAGE_API=${{ env.IMAGE_API }}:${{ github.sha }}
@@ -82,3 +88,10 @@ jobs:
             docker compose -f docker-compose.prod.yml pull
             docker compose -f docker-compose.prod.yml up -d --remove-orphans
             docker image prune -f
+
+      - name: Smoke test
+        run: |
+          sleep 15
+          curl --fail --silent --max-time 10 \
+            "https://${{ secrets.DOMAIN }}/api/v1/health" \
+            || (echo "Smoke test failed" && exit 1)
