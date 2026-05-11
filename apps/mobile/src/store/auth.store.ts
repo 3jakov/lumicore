@@ -1,5 +1,6 @@
 import * as SecureStore from 'expo-secure-store';
 import { create } from 'zustand';
+import type { AuthResponse, CurrentUser } from '@lumicore/shared-types';
 
 import { apiClient } from '@/lib/api-client';
 
@@ -8,24 +9,9 @@ const KEYS = {
   refreshToken: 'lumicore_refresh_token',
 } as const;
 
-export interface AuthUser {
-  id: number;
-  full_name: string;
-  initials: string;
-  email: string | null;
-  avatar_color: string;
-  language: 'et' | 'ru';
-}
-
-interface LoginResponse {
-  access_token: string;
-  refresh_token: string;
-  employee: AuthUser;
-}
-
 interface AuthState {
   accessToken: string | null;
-  currentUser: AuthUser | null;
+  currentUser: CurrentUser | null;
   isLoading: boolean;
 
   /** Call on app startup to rehydrate tokens from SecureStore. */
@@ -48,9 +34,9 @@ export const useAuthStore = create<AuthState>((set, get) => {
         const token = await SecureStore.getItemAsync(KEYS.accessToken);
         if (!token) { set({ isLoading: false }); return; }
 
-        // Validate token by fetching current user
+        // Validate token and fetch current user profile
         apiClient.setTokenProvider(() => token);
-        const user = await apiClient.get<AuthUser>('/employees/me');
+        const user = await apiClient.get<CurrentUser>('/auth/me');
         set({ accessToken: token, currentUser: user, isLoading: false });
       } catch {
         await SecureStore.deleteItemAsync(KEYS.accessToken);
@@ -60,12 +46,13 @@ export const useAuthStore = create<AuthState>((set, get) => {
     },
 
     async login(email, password) {
-      const data = await apiClient.post<LoginResponse>('/auth/login', {
+      const data = await apiClient.post<AuthResponse>('/auth/login', {
         body: { email, password },
       });
       await SecureStore.setItemAsync(KEYS.accessToken, data.access_token);
       await SecureStore.setItemAsync(KEYS.refreshToken, data.refresh_token);
-      set({ accessToken: data.access_token, currentUser: data.employee });
+      // AuthResponse.user is CurrentUser — same type as stored in the store
+      set({ accessToken: data.access_token, currentUser: data.user });
     },
 
     async logout() {

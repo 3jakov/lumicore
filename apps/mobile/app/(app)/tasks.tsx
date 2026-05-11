@@ -51,7 +51,7 @@ export default function TasksScreen() {
             {PRIORITY_LABEL[t.priority] ? `${PRIORITY_LABEL[t.priority]} ` : ''}
             {t.name}
           </Text>
-          <StatusBadge status={t.status} />
+          <StatusBadge kind="task" status={t.status} />
         </View>
         {(t.start_time || t.end_time) && (
           <Text className="mt-1 text-xs text-text-muted">

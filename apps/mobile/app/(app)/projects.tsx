@@ -51,7 +51,7 @@ export default function ProjectsScreen() {
       >
         <View className="flex-row items-center justify-between">
           <Text className="text-xs font-medium text-text-muted">{p.display_id}</Text>
-          <StatusBadge status={p.status} />
+          <StatusBadge kind="project" status={p.status} />
         </View>
         <Text className="mt-1 text-base font-semibold text-text-primary" numberOfLines={2}>
           {p.name}
