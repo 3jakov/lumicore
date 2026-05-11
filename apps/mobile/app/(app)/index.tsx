@@ -11,7 +11,7 @@ const TILES = [
   { label: 'Трекер',    emoji: '⏱',  route: '/(app)/timer'     },
   { label: 'Проекты',   emoji: '📋',  route: '/(app)/projects'  },
   { label: 'Задачи',    emoji: '✅',  route: '/(app)/tasks'     },
-  { label: 'Команда',   emoji: '👥',  route: '/(app)/team'      },
+  { label: 'Табель',    emoji: '📅',  route: '/(app)/team'      },
   { label: 'Фото',      emoji: '📷',  route: '/(app)/photos'    },
   { label: 'Документы', emoji: '📄',  route: '/(app)/documents' },
 ] as const;
