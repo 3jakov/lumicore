@@ -1,5 +1,5 @@
 # SNAPSHOT — Lumicore (Development)
-**Обновлено:** 2026-05-06 (post-review fixes)
+**Обновлено:** 2026-05-06 (M2 done)
 **Ветка:** `feat/scope-update-chat-docack`
 
 ---
@@ -62,7 +62,7 @@
 |---|---|---|
 | M0 — Foundation (auth, navigation, NativeWind, monorepo) | ✅ | `92cde76` |
 | M1 — Timer MVP (active card, pause/resume/stop, start form) | ✅ | `b6edf6c` |
-| M2 — Camera MVP (expo-camera, S3, GPS) | 🔜 | — |
+| M2 — Camera MVP (expo-camera, S3, GPS) | ✅ | `9543ea9` |
 | M3 — Projects + Tasks (list screens) | 🔜 | — |
 | M4 — My Timesheet | 🔜 | — |
 | M5 — Push Notifications (APNs/FCM) | 🔜 | — |
@@ -71,6 +71,8 @@
 
 | Hash | Описание |
 |---|---|
+| `9543ea9` | feat(mobile): M2 camera MVP — capture, GPS, S3 upload |
+| `ad5dc3b` | fix(mobile): address post-M1 review findings |
 | `b6edf6c` | feat(time-tracking): add GET /time-entries/active + mobile M1 timer screen |
 | `92cde76` | feat(infra): add Expo SDK 55 mobile app scaffold (M0) |
 | `c6bfc20` | feat(absences): add absence delete confirmation modal |
@@ -91,7 +93,7 @@
 - [ ] Первый deploy + smoke test
 
 ### Mobile Phase 2
-- [ ] **M2** — Camera: expo-camera + S3 presigned upload + GPS (`expo-location`)
+- [x] **M2** — Camera: expo-camera + S3 presigned upload + GPS (`expo-location`) ✅
 - [ ] **M3** — Projects list + Tasks list (read-only навигация)
 - [ ] **M4** — My Timesheet (месячный грид, самостоятельный просмотр)
 - [ ] **M5** — Push Notifications (Expo Notifications + APNs/FCM регистрация)
