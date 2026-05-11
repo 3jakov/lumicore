@@ -42,8 +42,20 @@ async function registerForPushNotificationsAsync(): Promise<string | null> {
 
   if (finalStatus !== 'granted') return null;
 
-  const tokenData = await Notifications.getExpoPushTokenAsync();
-  return tokenData.data; // e.g. "ExponentPushToken[xxx]"
+  // projectId is required for standalone/EAS builds (not just Expo Go).
+  // Read from app.json extra.eas.projectId; skip registration if it's still
+  // the placeholder value so dev builds don't pollute the push service.
+  const projectId: string | undefined =
+    (Constants.expoConfig?.extra as Record<string, unknown> | undefined)
+      ?.eas?.projectId as string | undefined;
+
+  if (!projectId || projectId === 'REPLACE_WITH_EAS_PROJECT_ID') {
+    // Dev environment without a real EAS project — fall through gracefully.
+    return null;
+  }
+
+  const tokenData = await Notifications.getExpoPushTokenAsync({ projectId });
+  return tokenData.data; // e.g. "ExpoPushToken[xxx]"
 }
 
 /**

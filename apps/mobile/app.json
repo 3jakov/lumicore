@@ -33,12 +33,24 @@
       [
         "expo-location",
         { "locationWhenInUsePermission": "Lumicore uses your location to tag job-site photos with GPS coordinates." }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/icon.png",
+          "color": "#F59E0B",
+          "sounds": [],
+          "mode": "production"
+        }
       ]
     ],
     "scheme": "lumicore",
     "extra": {
       "apiUrl": "http://localhost:3001/api/v1",
-      "wsUrl": "ws://localhost:3001"
+      "wsUrl": "ws://localhost:3001",
+      "eas": {
+        "projectId": "REPLACE_WITH_EAS_PROJECT_ID"
+      }
     }
   }
 }

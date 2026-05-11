@@ -18,6 +18,18 @@ function makeNotification(overrides: Partial<Notification> = {}): Notification {
   };
 }
 
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function makeDeviceToken(overrides: { id?: number; employee_id?: number; token?: string } = {}) {
+  return {
+    id: overrides.id ?? 1,
+    employee_id: overrides.employee_id ?? 10,
+    token: overrides.token ?? 'ExpoPushToken[test-token-abc]',
+    created_at: new Date('2026-05-11T10:00:00Z'),
+    updated_at: new Date('2026-05-11T10:00:00Z'),
+  };
+}
+
 // ─── Prisma mock ──────────────────────────────────────────────────────────────
 
 const prismaMock = {
@@ -26,6 +38,11 @@ const prismaMock = {
     findUnique: jest.fn(),
     update: jest.fn(),
     updateMany: jest.fn(),
+  },
+  deviceToken: {
+    upsert: jest.fn(),
+    deleteMany: jest.fn(),
+    findMany: jest.fn(),
   },
 };
 
@@ -117,6 +134,76 @@ describe('NotificationsService', () => {
         where: { employee_id: 10, read_at: null },
         data: expect.objectContaining({ read_at: expect.any(Date) }),
       });
+    });
+  });
+
+  // ─── upsertDeviceToken ───────────────────────────────────────────────────────
+
+  describe('upsertDeviceToken', () => {
+    it('calls upsert with correct create/update payload', async () => {
+      prismaMock.deviceToken.upsert.mockResolvedValue(makeDeviceToken());
+
+      await service.upsertDeviceToken(10, 'ExpoPushToken[abc]');
+
+      expect(prismaMock.deviceToken.upsert).toHaveBeenCalledWith({
+        where: { token: 'ExpoPushToken[abc]' },
+        update: { employee_id: 10 },
+        create: { employee_id: 10, token: 'ExpoPushToken[abc]' },
+      });
+    });
+
+    it('re-assigns token to new employee on upsert (device re-login)', async () => {
+      prismaMock.deviceToken.upsert.mockResolvedValue(makeDeviceToken({ employee_id: 20 }));
+
+      await service.upsertDeviceToken(20, 'ExpoPushToken[abc]');
+
+      expect(prismaMock.deviceToken.upsert).toHaveBeenCalledWith(
+        expect.objectContaining({ update: { employee_id: 20 } }),
+      );
+    });
+  });
+
+  // ─── removeDeviceToken ───────────────────────────────────────────────────────
+
+  describe('removeDeviceToken', () => {
+    it('deletes by token', async () => {
+      prismaMock.deviceToken.deleteMany.mockResolvedValue({ count: 1 });
+
+      await service.removeDeviceToken('ExpoPushToken[abc]');
+
+      expect(prismaMock.deviceToken.deleteMany).toHaveBeenCalledWith({
+        where: { token: 'ExpoPushToken[abc]' },
+      });
+    });
+
+    it('does not throw when token not found (idempotent)', async () => {
+      prismaMock.deviceToken.deleteMany.mockResolvedValue({ count: 0 });
+      await expect(service.removeDeviceToken('ExpoPushToken[unknown]')).resolves.toBeUndefined();
+    });
+  });
+
+  // ─── getTokensForEmployee ────────────────────────────────────────────────────
+
+  describe('getTokensForEmployee', () => {
+    it('returns array of token strings for the employee', async () => {
+      prismaMock.deviceToken.findMany.mockResolvedValue([
+        makeDeviceToken({ token: 'ExpoPushToken[t1]' }),
+        makeDeviceToken({ token: 'ExpoPushToken[t2]' }),
+      ]);
+
+      const result = await service.getTokensForEmployee(10);
+
+      expect(prismaMock.deviceToken.findMany).toHaveBeenCalledWith({
+        where: { employee_id: 10 },
+        select: { token: true },
+      });
+      expect(result).toEqual(['ExpoPushToken[t1]', 'ExpoPushToken[t2]']);
+    });
+
+    it('returns empty array when employee has no registered devices', async () => {
+      prismaMock.deviceToken.findMany.mockResolvedValue([]);
+      const result = await service.getTokensForEmployee(10);
+      expect(result).toEqual([]);
     });
   });
 
