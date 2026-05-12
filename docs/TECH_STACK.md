@@ -27,7 +27,7 @@
 ```
 ┌─────────────────────────────────────────────────────┐
 │                    Browser / PWA                    │
-│           Next.js 14  +  Tailwind CSS               │
+│           Next.js 16  +  Tailwind CSS 3              │
 └──────────────┬──────────────────────┬───────────────┘
                │ REST (HTTPS)         │ WebSocket (WSS)
                ▼                      ▼
@@ -49,12 +49,12 @@ All services run in Docker containers. Development uses docker-compose. Producti
 
 ## 2. Frontend
 
-### 2.1 Core Framework: Next.js 14
+### 2.1 Core Framework: Next.js 16
 
-**Chosen:** Next.js 14 (App Router)
+**Chosen:** Next.js 16 (App Router)
 **Language:** TypeScript (strict mode)
 
-**Why Next.js 14:**
+**Why Next.js 16:**
 - App Router enables React Server Components — reduces JS bundle sent to mobile PWA clients, which is critical for field workers on 4G.
 - Built-in image optimization for photo gallery thumbnails.
 - Strong TypeScript support, file-based routing reduces boilerplate.
@@ -64,7 +64,7 @@ All services run in Docker containers. Development uses docker-compose. Producti
 **App Router conventions used:**
 - `app/` directory with `page.tsx`, `layout.tsx`, `loading.tsx`, `error.tsx`.
 - Server Components for all read-heavy pages (project lists, timesheets).
-- `'use client'` directive only where required: timer controls, live Praegu view, chat input, camera capture.
+- `'use client'` directive only where required: timer controls, live Praegu view, camera capture, document acknowledgement confirmation.
 
 ### 2.2 Styling: Tailwind CSS 3
 
@@ -76,12 +76,14 @@ All services run in Docker containers. Development uses docker-compose. Producti
 
 No CSS Modules, no styled-components, no Emotion. All styles are Tailwind utilities. Custom design tokens added to `tailwind.config.ts` if needed.
 
+**Staying on v3 (not v4):** Tailwind CSS 4 drops support for some legacy CSS features used on iOS Safari 15–16. Phase 1 targets iOS Safari 15+, so v3 is required until that minimum is raised. Revisit when minimum iOS target moves to Safari 17+.
+
 ### 2.3 State Management
 
 | Concern | Tool | Rationale |
 |---|---|---|
 | Server/async state | TanStack Query (React Query) v5 | Caching, background refetch, optimistic updates for mutations |
-| Global client state | Zustand v4 | Lightweight; used only for: auth state, current user, active timer state, WebSocket connection state |
+| Global client state | Zustand v5 | Lightweight; used only for: auth state, current user, active timer state, WebSocket connection state |
 | Form state | React Hook Form + Zod | Type-safe forms, schema validation that mirrors backend DTOs |
 | URL state | Next.js `useSearchParams` | Filters, pagination — bookmarkable URLs |
 
@@ -107,7 +109,7 @@ No CSS Modules, no styled-components, no Emotion. All styles are Tailwind utilit
 
 ### 3.1 Core Framework: NestJS
 
-**Chosen:** NestJS 10 + TypeScript (strict mode)
+**Chosen:** NestJS 11 + TypeScript (strict mode)
 **Runtime:** Node.js 20 LTS
 
 **Why NestJS:**
@@ -210,9 +212,8 @@ CREATE INDEX idx_photos_project ON photos(project_id);
 - NestJS has a native `@WebSocketGateway` decorator that integrates cleanly.
 
 **Rooms:**
-- `timers` — all connected admin/manager clients subscribe for Praegu view.
-- `project:{id}` — clients viewing a project subscribe for real-time task/chat updates.
-- `chat:{conversation_id}` — chat participants subscribe.
+- `timers` — all connected admin/manager clients subscribe for Praegu live view (timer:started/stopped/paused/resumed events).
+- Phase 2 will add `project:{id}` and `chat:{conversation_id}` rooms for Chat/Vestlus. No chat rooms in Phase 1.
 
 **Authentication:**
 - JWT passed in handshake `auth: { token }`.
@@ -265,9 +266,47 @@ lumico-files/
 
 **Refresh Token:**
 - Expiry: 7 days.
-- Stored as: httpOnly, Secure, SameSite=Strict cookie.
 - Rotated on every use (refresh token rotation prevents replay attacks).
-- Stored in DB as a hash to allow revocation.
+- Stored in DB as a SHA-256 hash to allow server-side revocation.
+- **Dual-mode delivery (Phase 1 requirement):**
+  - **Web/PWA:** Set as httpOnly, Secure, SameSite=Strict cookie. Browser sends it automatically on every request to `/auth/refresh`.
+  - **Native apps (future):** Also returned as `{ refresh_token: "..." }` in the JSON response body. Native app stores it in secure device storage (Keychain/Keystore) and sends it as `{ refresh_token }` in the request body.
+  - Both modes are implemented from day one — no backend change needed when native apps are built.
+
+**`POST /auth/refresh` — dual-mode controller logic:**
+```typescript
+// auth.controller.ts
+@Post('refresh')
+async refresh(
+  @Req() req: Request,
+  @Body() body: RefreshTokenDto,   // { refresh_token?: string }
+  @Res({ passthrough: true }) res: Response,
+) {
+  // Cookie takes priority (web); fall back to body field (native)
+  const incomingToken = req.cookies?.refresh_token ?? body.refresh_token;
+  if (!incomingToken) throw new UnauthorizedException('No refresh token provided');
+
+  const { accessToken, refreshToken } = await this.authService.refreshTokens(incomingToken);
+
+  // Always set cookie (keeps web sessions working)
+  res.cookie('refresh_token', refreshToken, {
+    httpOnly: true,
+    secure: true,
+    sameSite: 'strict',
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+  });
+
+  // Always return in body (native clients use this; web clients can ignore it)
+  return { access_token: accessToken, refresh_token: refreshToken };
+}
+```
+
+**Security properties maintained in both modes:**
+- HTTPS required in production (both modes transmit token over TLS).
+- Token rotation on every use: old token is invalidated immediately.
+- DB hash comparison: stolen token from a compromised DB is useless without the plaintext.
+- Cookie mode additionally protected by SameSite=Strict (CSRF immune).
+- Body mode security relies on native secure storage (Keychain/Keystore) — acceptable for a controlled employee app.
 
 **Phone OTP Flow:**
 1. `POST /api/v1/auth/otp/request` — employee provides phone number. System sends 6-digit OTP via SMS (Twilio or local Estonian SMS provider).
@@ -305,7 +344,7 @@ ProjectAccessGuard // checks employee.project_access for project-scoped routes
 **PWA Features:**
 - **Service Worker** (via `next-pwa`): caches static assets and recent API responses. Task list and project list viewable offline (read-only).
 - **App Manifest**: home screen install, full-screen display, LUMICO icon and brand colors.
-- **Push Notifications**: Web Push via VAPID keys. Notification types: task assigned, timer reminder (>8h running), chat message.
+- **Push Notifications**: Web Push via VAPID keys. Notification types: task assigned, timer reminder (>8h running). Chat notifications are Phase 2.
 - **Camera**: `getUserMedia({ video: { facingMode: 'environment' } })` — rear camera default. Canvas capture → Blob → direct S3 upload. Photos never touch device gallery.
 - **GPS**: `navigator.geolocation.getCurrentPosition()` called at photo capture time. 10-second timeout with fallback (photo saved without GPS, gps_verified = false).
 
@@ -501,11 +540,11 @@ Strict mode enabled in all packages:
 |---|---|---|
 | Node.js | 20 LTS | runtime |
 | TypeScript | 5.4 | all |
-| Next.js | 14.2 | web |
-| React | 18.3 | web |
-| Tailwind CSS | 3.4 | web |
+| Next.js | 16.x | web |
+| React | 19.x | web |
+| Tailwind CSS | 3.x | web — pinned to v3; see §2.2 |
 | @tanstack/react-query | 5.x | web |
-| Zustand | 4.x | web |
+| Zustand | 5.x | web |
 | React Hook Form | 7.x | web |
 | Zod | 3.x | web |
 | socket.io-client | 4.x | web |
@@ -514,14 +553,14 @@ Strict mode enabled in all packages:
 | @radix-ui/react-* | latest | web |
 | lucide-react | latest | web |
 | next-pwa | 5.x | web |
-| NestJS | 10.x | api |
-| @nestjs/platform-express | 10.x | api |
-| @nestjs/websockets | 10.x | api |
-| @nestjs/platform-socket.io | 10.x | api |
-| @nestjs/swagger | 7.x | api |
+| NestJS | 11.x | api |
+| @nestjs/platform-express | 11.x | api |
+| @nestjs/websockets | 11.x | api |
+| @nestjs/platform-socket.io | 11.x | api |
+| @nestjs/swagger | 8.x | api |
 | socket.io | 4.x | api |
-| Prisma | 5.x | api |
-| @prisma/client | 5.x | api |
+| Prisma | 6.x | api |
+| @prisma/client | 6.x | api |
 | class-validator | 0.14.x | api |
 | class-transformer | 0.5.x | api |
 | bcrypt | 5.x | api |
@@ -539,7 +578,7 @@ Strict mode enabled in all packages:
 ## 13. Decision Log
 
 ### ADR-001: Next.js App Router over Pages Router
-**Decision:** Use App Router (introduced in Next.js 13, stable in 14).
+**Decision:** Use App Router (introduced in Next.js 13, mature from 14, current version 16).
 **Reason:** Server Components reduce JavaScript sent to field workers on mobile. Streaming enables faster perceived performance for dashboard loads.
 **Trade-off:** App Router is newer; some third-party libraries still have limited RSC support. Mitigated by using `'use client'` wrapper components where needed.
 
@@ -551,8 +590,8 @@ Strict mode enabled in all packages:
 ### ADR-003: PWA over Native App
 **Decision:** Progressive Web App for Phase 1.
 **Reason:** Team of 22 does not justify App Store/Play Store publishing, code signing, and device management overhead. PWA covers camera, GPS, and push notifications on modern devices.
-**Trade-off:** iOS Safari Web Push was limited before iOS 16.4. Current minimum iOS 15 means some users may not receive push notifications. Acceptable for Phase 1 — employees are in frequent contact via chat.
-**Revisit:** If field workers consistently report push notification failures on iOS, consider a React Native thin shell in Phase 2.
+**Trade-off:** iOS Safari Web Push was limited before iOS 16.4. Current minimum iOS 15 means some users may not receive push notifications. Acceptable for Phase 1 — the only push notification types in Phase 1 are task assignments and timer reminders, not real-time chat.
+**Revisit trigger:** If field workers on iOS Safari <16.4 consistently miss push notifications, or if the team grows beyond 30 field workers, evaluate React Native in Phase 2. When building native apps, the NestJS backend requires no changes — only the auth refresh flow (dual-mode cookie + body) and the NotificationService (add APNs/FCM transport) need to be extended. See `docs/MOBILE_READINESS.md`.
 
 ### ADR-004: Socket.io over raw WebSocket
 **Decision:** Socket.io with NestJS gateway.

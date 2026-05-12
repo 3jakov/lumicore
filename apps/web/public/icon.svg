@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+  <title id="title">Lumicore icon</title>
+  <desc id="desc">Abstract geometric emblem for the Lumicore app scaffold.</desc>
+  <defs>
+    <linearGradient id="g" x1="0%" x2="100%" y1="0%" y2="100%">
+      <stop offset="0%" stop-color="#7d914a" />
+      <stop offset="100%" stop-color="#3c8f89" />
+    </linearGradient>
+  </defs>
+  <rect width="256" height="256" rx="64" fill="#1b2119" />
+  <path d="M62 62h48v132h84v-48h-36V98h36V62H62Z" fill="url(#g)" />
+  <path d="M126 98h32v32h-32z" fill="#f7f6ef" opacity=".92" />
+</svg>

@@ -1,0 +1,84 @@
+Сделай strict cross-check review для Projects после внедрения edit flow в репозитории Lumicore.
+
+Repository:
+C:\git\lumicore
+
+Source of truth:
+- CLAUDE.md
+- docs/PRD.md
+- docs/TECH_STACK.md
+- docs/ARCHITECTURE.md
+- docs/IMPLEMENTATION_PLAN.md
+- docs/MODULE_HANDOFF_CHECKLIST.md
+
+Scope review:
+- apps/api/src/projects/
+- packages/shared-types/src/project.types.ts
+- apps/web/app/(app)/projects/
+- apps/web/components/projects/
+- apps/web/hooks/
+
+Primary goal:
+Проверить границу backend ↔ shared-types ↔ frontend после появления:
+- Projects read endpoints
+- Projects CRUD baseline
+- frontend create flow
+- frontend edit flow
+
+Review priorities:
+1. Shared contract alignment
+   - `ProjectSummary`
+   - `ProjectDetail`
+   - `CreateProjectDto`
+   - `UpdateProjectDto`
+2. Frontend payload semantics vs backend update semantics
+   - `undefined` = do not touch
+   - `null` = clear
+   - value = set
+3. Field-by-field alignment
+   - names
+   - nullable behavior
+   - date format expectations
+   - numeric field handling (`project_manager_id`)
+   - `display_id` handling
+4. Response shape alignment
+   - GET /projects
+   - GET /projects/:id
+   - POST /projects
+   - PATCH /projects/:id
+5. Cache / data flow assumptions
+   - detail/list cache usage
+   - whether frontend assumptions match backend responses
+6. Remaining blockers for next step
+   - archive flow
+   - future employees selector swap
+
+What counts as a finding:
+- backend/shared-types/frontend mismatch
+- wrong nullable semantics
+- field naming mismatch
+- response shape mismatch
+- frontend expects more/less than backend guarantees
+- anything that can break create/edit/detail in real usage
+
+What NOT to include:
+- isolated style issues
+- generic architecture essays
+- complaints about not-yet-built Employees module unless it directly affects current Projects contracts
+
+Format:
+1. Findings first, ordered by severity
+2. For each finding:
+   - severity: P1 / P2 / P3
+   - boundary affected: backend / shared-types / frontend
+   - files involved
+   - lines if possible
+   - issue
+   - impact
+3. Then:
+   - “Projects cross-layer contract health: good / shaky / broken”
+   - “Can frontend continue safely toward archive + selector swap: yes / mostly / no”
+   - “Top 5 alignment follow-ups”
+
+Главный вопрос:
+После create + edit flow Projects уже имеют устойчивый cross-layer contract, или ещё есть скрытые mismatches, которые лучше закрыть до следующего шага?

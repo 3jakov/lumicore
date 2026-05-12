@@ -29,7 +29,7 @@
 ║                                                                              ║
 ║  ┌─────────────────────┐   ┌──────────────────────┐                        ║
 ║  │   Browser (Desktop) │   │  PWA (Mobile/Field)  │                        ║
-║  │   Next.js 14 SPA    │   │  Service Worker      │                        ║
+║  │   Next.js 16        │   │  Service Worker      │                        ║
 ║  │   Chrome/Firefox    │   │  Camera + GPS        │                        ║
 ║  └──────────┬──────────┘   └──────────┬───────────┘                        ║
 ╚═════════════╪═════════════════════════╪════════════════════════════════════╝
@@ -104,8 +104,8 @@ apps/web/
 │   │   │       ├── page.tsx
 │   │   │       └── [id]/page.tsx
 │   │   ├── tools/page.tsx
-│   │   ├── chat/
-│   │   │   └── [conversationId]/page.tsx
+│   │   ├── documents/
+│   │   │   └── page.tsx               # My required documents + ack status
 │   │   └── settings/
 │   │       ├── profile/page.tsx
 │   │       ├── company/page.tsx
@@ -125,7 +125,7 @@ apps/web/
 │   ├── time-tracking/
 │   ├── team/
 │   ├── photos/                   # PhotoCapture (getUserMedia), PhotoGrid
-│   ├── chat/
+│   ├── doc-acknowledgement/  # DocList, DocAckButton, ComplianceMatrix
 │   └── tools/
 │
 ├── hooks/                        # React Query hooks
@@ -214,12 +214,14 @@ apps/api/src/
 │   ├── tools.service.ts
 │   └── dto/
 │
-├── chat/
-│   ├── chat.module.ts
-│   ├── chat.controller.ts
-│   ├── chat.service.ts
-│   ├── chat.gateway.ts
+├── doc-acknowledgement/
+│   ├── doc-acknowledgement.module.ts
+│   ├── doc-acknowledgement.controller.ts
+│   ├── doc-acknowledgement.service.ts
 │   └── dto/
+│       ├── create-internal-document.dto.ts
+│       ├── assign-document.dto.ts
+│       └── acknowledge-document.dto.ts
 │
 ├── settings/
 │   ├── settings.module.ts
@@ -444,8 +446,8 @@ model Employee {
   responsible_tools   Tool[]
   otp_codes           OtpCode[]
   refresh_tokens      RefreshToken[]
-  messages            ChatMessage[]
-  conversations       ConversationMember[]
+  acknowledgements    DocAcknowledgement[]
+  doc_assignments     DocAckAssignment[]   @relation("AssignedEmployee")
 
   @@index([status])
   @@index([group])
@@ -491,7 +493,6 @@ model Project {
   location_lat     Float?
   location_lng     Float?
   contract_number  String?
-  auto_create_chat Boolean       @default(false)
   project_manager_id Int?
 
   // Client (inline Phase 1, extracted to CRM entity in Phase 2)
@@ -514,7 +515,6 @@ model Project {
   photos           Photo[]
   documents        Document[]
   tools            Tool[]
-  conversations    Conversation[]
   access_grants    EmployeeProjectAccess[]
 
   @@index([status])
@@ -737,44 +737,58 @@ model TaskTool {
 }
 
 // ─────────────────────────────────────────────
-// CHAT
+// DOCUMENT ACKNOWLEDGEMENT
 // ─────────────────────────────────────────────
 
-model Conversation {
-  id         Int                  @id @default(autoincrement())
-  name       String?              // null for direct messages
-  type       ConversationType     @default(direct)
-  project_id Int?
-  created_at DateTime             @default(now()) @db.Timestamptz
+model InternalDocument {
+  id           Int       @id @default(autoincrement())
+  title        String
+  description  String?
+  category     String?                       // e.g. 'Ohutus', 'Reeglid', 'Koolitus'
+  s3_key       String                        // path in S3 bucket
+  version      Int       @default(1)
+  requires_ack Boolean   @default(true)
+  uploaded_by_id Int
+  created_at   DateTime  @default(now()) @db.Timestamptz
+  updated_at   DateTime  @updatedAt @db.Timestamptz
+  archived_at  DateTime? @db.Timestamptz
 
-  project    Project?             @relation(fields: [project_id], references: [id])
-  members    ConversationMember[]
-  messages   ChatMessage[]
+  uploaded_by      Employee           @relation("DocumentUploader", fields: [uploaded_by_id], references: [id])
+  assignments      DocAckAssignment[]
+  acknowledgements DocAcknowledgement[]
+
+  @@index([archived_at])
 }
 
-model ConversationMember {
-  conversation_id Int
-  employee_id     Int
-  last_read_at    DateTime?        @db.Timestamptz
-  conversation    Conversation     @relation(fields: [conversation_id], references: [id])
-  employee        Employee         @relation(fields: [employee_id], references: [id])
+model DocAckAssignment {
+  id          Int            @id @default(autoincrement())
+  document_id Int
+  employee_id Int?           // specific employee — null if group-based
+  group       EmployeeGroup? // whole group — null if employee-based
+  assigned_by_id Int
+  assigned_at DateTime       @default(now()) @db.Timestamptz
+  due_date    DateTime?      @db.Timestamptz
 
-  @@id([conversation_id, employee_id])
+  document    InternalDocument @relation(fields: [document_id], references: [id])
+  employee    Employee?        @relation("AssignedEmployee", fields: [employee_id], references: [id])
+  assigned_by Employee         @relation("AssignedBy", fields: [assigned_by_id], references: [id])
+
+  @@index([document_id])
+  @@index([employee_id])
 }
 
-model ChatMessage {
-  id              Int          @id @default(autoincrement())
-  conversation_id Int
-  author_id       Int
-  body            String?
-  attachment_s3_key String?
-  attachment_type   String?    // 'photo' | 'file'
-  created_at      DateTime     @default(now()) @db.Timestamptz
+model DocAcknowledgement {
+  id               Int      @id @default(autoincrement())
+  document_id      Int
+  employee_id      Int
+  document_version Int      // version at time of acknowledgement
+  acknowledged_at  DateTime @default(now()) @db.Timestamptz
 
-  conversation Conversation @relation(fields: [conversation_id], references: [id])
-  author       Employee     @relation(fields: [author_id], references: [id])
+  document  InternalDocument @relation(fields: [document_id], references: [id])
+  employee  Employee         @relation(fields: [employee_id], references: [id])
 
-  @@index([conversation_id, created_at])
+  @@unique([document_id, employee_id, document_version])
+  @@index([employee_id])
 }
 
 // ─────────────────────────────────────────────
@@ -868,11 +882,6 @@ enum TemplateType {
   general
 }
 
-enum ConversationType {
-  direct
-  group
-  project
-}
 ```
 
 ---
@@ -892,7 +901,7 @@ NestJS HTTP Adapter (Express)
     │
     ▼
 Global Middleware
-├── CORS (configured origins)
+├── CORS (configured origins — also permits requests with no Origin header for native app clients)
 ├── Helmet (security headers)
 ├── Request logging
 └── Rate limiting (Redis-backed, per IP)
@@ -981,22 +990,45 @@ Browser (Praegu page)              NestJS TimeTrackingGateway
         │  Show employee card with counter   │
 ```
 
-### 6.2 Chat Architecture
+### 6.2 Document Acknowledgement Flow
 
 ```
-Employee A (Browser)         NestJS ChatGateway        Employee B (Browser)
-        │                           │                           │
-        │  join 'chat:{conv_id}'    │  join 'chat:{conv_id}'   │
-        │──────────────────────────▶│◀──────────────────────────│
-        │                           │                           │
-        │  event: 'chat:send'       │                           │
-        │  { conv_id, body }        │                           │
-        │──────────────────────────▶│                           │
-        │                           │ Save to DB                │
-        │                           │ (ChatService)             │
-        │                           │                           │
-        │◀── event: 'chat:message'  │ event: 'chat:message' ──▶│
-        │    { message }            │    { message }            │
+Admin (Browser)              NestJS DocAckController       Employee (PWA)
+        │                              │                          │
+        │ POST /internal-documents     │                          │
+        │ /upload-url                  │                          │
+        │─────────────────────────────▶│                          │
+        │◀── { upload_url, s3_key } ───│                          │
+        │                              │                          │
+        │ PUT blob → S3 directly       │                          │
+        │                              │                          │
+        │ POST /internal-documents     │                          │
+        │ { s3_key, title, version:1 } │                          │
+        │─────────────────────────────▶│ INSERT InternalDocument  │
+        │◀── { document } ─────────────│                          │
+        │                              │                          │
+        │ POST /internal-documents     │                          │
+        │ /:id/assign                  │                          │
+        │ { group: 'Paigaldus' }       │                          │
+        │─────────────────────────────▶│ INSERT DocAckAssignment  │
+        │◀── 201 ──────────────────────│                          │
+        │                              │                          │
+        │                              │ GET /internal-documents  │
+        │                              │ /my                      │
+        │                              │◀─────────────────────────│
+        │                              │ Query assignments +      │
+        │                              │ acknowledgements         │
+        │                              │──────────────────────────▶
+        │                              │ { pending: [...] }       │
+        │                              │                          │
+        │                              │ POST /internal-documents │
+        │                              │ /:id/acknowledge         │
+        │                              │◀─────────────────────────│
+        │                              │ Validate assignment      │
+        │                              │ INSERT DocAcknowledgement│
+        │                              │ (BR-016, BR-018)         │
+        │                              │──────────────────────────▶
+        │                              │ 201 { acknowledged_at }  │
 ```
 
 ### 6.3 Reconnection Strategy
@@ -1108,6 +1140,34 @@ interface JwtPayload {
 8. On fail: increment attempt counter in Redis (max 5 attempts, then 15min lockout)
 ```
 
+### 8.4 Refresh Token Flow (Dual-Mode)
+
+Token issuance (step 7 above) and every subsequent refresh follow the same dual-mode response:
+
+```
+POST /api/v1/auth/refresh
+
+Accepted inputs (in priority order):
+  1. Cookie:  refresh_token=<token>   (httpOnly cookie, sent automatically by browser)
+  2. Body:    { "refresh_token": "<token>" }  (explicit body field for native clients)
+
+On valid token:
+  a. Invalidate old token in DB (hash cleared)
+  b. Generate new access token (15 min) + new refresh token (7 days)
+  c. Set-Cookie: refresh_token=<new>; HttpOnly; Secure; SameSite=Strict
+  d. Respond:  { "access_token": "...", "refresh_token": "..." }
+
+On invalid/missing token:
+  → 401 Unauthorized
+
+Token rotation is atomic: old token invalidated before new one is written.
+```
+
+**Why both modes from Phase 1:**
+- Web/PWA clients rely on the cookie; they ignore the body field.
+- Future native apps cannot use httpOnly cookies — they read `refresh_token` from the body and store it in Keychain (iOS) / Keystore (Android).
+- Implementing both now means zero backend changes when native apps are built.
+
 ---
 
 ## 9. Module Dependency Map
@@ -1119,8 +1179,7 @@ AppModule
 │   ├── EmployeesModule (for user lookup)
 │   └── [Redis — for OTP storage]
 ├── ProjectsModule
-│   ├── DatabaseModule
-│   └── ChatModule (for auto-create chat)
+│   └── DatabaseModule
 ├── TasksModule
 │   └── DatabaseModule
 ├── TimeTrackingModule
@@ -1138,9 +1197,9 @@ AppModule
 │   └── S3Service
 ├── ToolsModule
 │   └── DatabaseModule
-├── ChatModule
+├── DocAcknowledgementModule
 │   ├── DatabaseModule
-│   └── ChatGateway (WebSocket)
+│   └── S3Service (presigned upload URL for internal documents)
 └── SettingsModule
     └── DatabaseModule
 ```
@@ -1254,7 +1313,7 @@ docker compose exec api npx prisma migrate deploy
 | Files | S3 pre-signed URLs (no public bucket access) |
 | Auth | OTP rate limiting (max 5 attempts, 15 min lockout) |
 | Auth | Refresh token rotation (prevents replay) |
-| Auth | httpOnly, Secure, SameSite=Strict cookies for refresh tokens |
+| Auth | Refresh tokens dual-mode: httpOnly cookie (web) + response body (native). Cookie always set; body always returned. See §8.4. |
 | Sensitive data | Serializer-level field stripping for non-admin |
 
 ### 11.2 Data Privacy

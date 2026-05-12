@@ -1,0 +1,615 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────────────
+// EMPLOYEES
+// ─────────────────────────────────────────────
+
+model Employee {
+  id                  Int            @id @default(autoincrement())
+  full_name           String
+  photo_url           String?
+  avatar_color        String         @default("#4F46E5")
+  initials            String
+  group               EmployeeGroup
+  status              EmployeeStatus @default(Aktiivne)
+  work_schedule       String?
+  norm_hours_per_week Int            @default(40)
+  project_access_all  Boolean        @default(true)
+  phone               String?        @unique
+  email               String?        @unique
+  password_hash       String?
+  language            Language       @default(et)
+  time_format         TimeFormat     @default(H24)
+  hourly_rate         Decimal?       @db.Decimal(10, 2)
+  personal_id         String?
+  birth_date          DateTime?      @db.Date
+  additional_info     String?
+  created_at          DateTime       @default(now()) @db.Timestamptz
+  updated_at          DateTime       @updatedAt @db.Timestamptz
+  archived_at         DateTime?      @db.Timestamptz
+
+  // Relations
+  roles                   EmployeeRole[]
+  project_access_list     EmployeeProjectAccess[]
+  managed_projects        Project[]              @relation("ProjectManager")
+  assigned_projects       ProjectEmployee[]
+  assigned_tasks          TaskAssignee[]
+  time_entries            TimeEntry[]
+  photos                  Photo[]
+  photo_comments          PhotoComment[]
+  responsible_tools       Tool[]
+  otp_codes               OtpCode[]
+  refresh_tokens          RefreshToken[]
+  acknowledgements        DocAcknowledgement[]
+  doc_assignments         DocAckAssignment[]     @relation("AssignedEmployee")
+  doc_assignments_created DocAckAssignment[]     @relation("AssignedBy")
+  uploaded_documents      InternalDocument[]     @relation("DocumentUploader")
+  absences                Absence[]              @relation("EmployeeAbsences")
+  created_absences        Absence[]              @relation("AbsenceCreatedBy")
+  notifications           Notification[]
+  device_tokens           DeviceToken[]
+
+  @@index([status])
+  @@index([group])
+}
+
+model Role {
+  id         Int            @id @default(autoincrement())
+  name       String         @unique
+  created_at DateTime       @default(now()) @db.Timestamptz
+  employees  EmployeeRole[]
+}
+
+model EmployeeRole {
+  employee_id Int
+  role_id     Int
+  employee    Employee @relation(fields: [employee_id], references: [id])
+  role        Role     @relation(fields: [role_id], references: [id])
+
+  @@id([employee_id, role_id])
+}
+
+model EmployeeProjectAccess {
+  employee_id Int
+  project_id  Int
+  employee    Employee @relation(fields: [employee_id], references: [id])
+  project     Project  @relation(fields: [project_id], references: [id])
+
+  @@id([employee_id, project_id])
+}
+
+// ─────────────────────────────────────────────
+// PROJECTS
+// ─────────────────────────────────────────────
+
+model Project {
+  id                 Int           @id @default(autoincrement())
+  name               String
+  status             ProjectStatus @default(Ettevalmistuses)
+  start_date         DateTime?     @db.Date
+  end_date           DateTime?     @db.Date
+  description        String?
+  location_address   String?
+  location_lat       Float?
+  location_lng       Float?
+  contract_number    String?
+  project_manager_id Int?
+
+  // Client (inline Phase 1, extracted to CRM entity in Phase 2)
+  client_company_name String?
+  client_reg_code     String?
+  client_contact_name String?
+  client_phone        String?
+  client_email        String?
+
+  created_at  DateTime  @default(now()) @db.Timestamptz
+  updated_at  DateTime  @updatedAt @db.Timestamptz
+  archived_at DateTime? @db.Timestamptz
+
+  // Relations
+  project_manager Employee?               @relation("ProjectManager", fields: [project_manager_id], references: [id])
+  people          ProjectEmployee[]
+  tags            ProjectTag[]
+  tasks           Task[]
+  time_entries    TimeEntry[]
+  photos          Photo[]
+  documents       Document[]
+  tools           Tool[]
+  access_grants   EmployeeProjectAccess[]
+
+  @@index([status])
+  @@index([archived_at])
+}
+
+model ProjectEmployee {
+  project_id  Int
+  employee_id Int
+  project     Project  @relation(fields: [project_id], references: [id])
+  employee    Employee @relation(fields: [employee_id], references: [id])
+
+  @@id([project_id, employee_id])
+}
+
+model Tag {
+  id          Int           @id @default(autoincrement())
+  name        String
+  color       String        @default("#6B7280")
+  entity_type TagEntityType
+  created_at  DateTime      @default(now()) @db.Timestamptz
+  archived_at DateTime?     @db.Timestamptz
+  projects    ProjectTag[]
+  tasks       TaskTag[]
+
+  @@unique([name, entity_type])
+}
+
+model ProjectTag {
+  project_id Int
+  tag_id     Int
+  project    Project @relation(fields: [project_id], references: [id])
+  tag        Tag     @relation(fields: [tag_id], references: [id])
+
+  @@id([project_id, tag_id])
+}
+
+// ─────────────────────────────────────────────
+// TASKS
+// ─────────────────────────────────────────────
+
+model Task {
+  id               Int          @id @default(autoincrement())
+  name             String
+  status           TaskStatus   @default(Uus)
+  project_id       Int?
+  template_id      Int?
+  priority         Priority     @default(Keskmine)
+  location_address String?
+  location_lat     Float?
+  location_lng     Float?
+  start_time       DateTime?    @db.Timestamptz
+  end_time         DateTime?    @db.Timestamptz
+  created_at       DateTime     @default(now()) @db.Timestamptz
+  updated_at       DateTime     @updatedAt @db.Timestamptz
+  archived_at      DateTime?    @db.Timestamptz
+
+  // Relations
+  project      Project?      @relation(fields: [project_id], references: [id])
+  template     TaskTemplate? @relation(fields: [template_id], references: [id])
+  assignees    TaskAssignee[]
+  tools        TaskTool[]
+  tags         TaskTag[]
+  photos       Photo[]
+  time_entries TimeEntry[]
+
+  @@index([project_id, status])
+  @@index([status])
+}
+
+model TaskAssignee {
+  task_id     Int
+  employee_id Int
+  task        Task     @relation(fields: [task_id], references: [id])
+  employee    Employee @relation(fields: [employee_id], references: [id])
+
+  @@id([task_id, employee_id])
+}
+
+model TaskTag {
+  task_id Int
+  tag_id  Int
+  task    Task @relation(fields: [task_id], references: [id])
+  tag     Tag  @relation(fields: [tag_id], references: [id])
+
+  @@id([task_id, tag_id])
+}
+
+model TaskTemplate {
+  id            Int            @id @default(autoincrement())
+  name          String         @unique
+  type          TemplateType   @default(general)
+  sort_order    Int            @default(0)
+  default_group EmployeeGroup?
+  is_active     Boolean        @default(true)
+  created_at    DateTime       @default(now()) @db.Timestamptz
+  tasks         Task[]
+}
+
+// ─────────────────────────────────────────────
+// TIME TRACKING
+// ─────────────────────────────────────────────
+
+model TimeEntry {
+  id                Int       @id @default(autoincrement())
+  employee_id       Int
+  project_id        Int?
+  task_id           Int?
+  no_project_reason String? // required when project_id is null
+  started_at        DateTime  @db.Timestamptz
+  ended_at          DateTime? @db.Timestamptz
+  is_manual         Boolean   @default(false)
+  needs_review      Boolean   @default(false)
+  is_confirmed      Boolean   @default(false)
+  created_at        DateTime  @default(now()) @db.Timestamptz
+  updated_at        DateTime  @updatedAt @db.Timestamptz
+
+  // Relations
+  employee  Employee           @relation(fields: [employee_id], references: [id])
+  project   Project?           @relation(fields: [project_id], references: [id])
+  task      Task?              @relation(fields: [task_id], references: [id])
+  pauses    Pause[]
+  comments  TimeEntryComment[]
+
+  @@index([employee_id, started_at])
+  @@index([project_id])
+  // Note: partial index "WHERE project_id IS NULL" should be added manually via migration SQL
+  // as Prisma does not support partial indexes in @@index
+}
+
+model Pause {
+  id            Int       @id @default(autoincrement())
+  time_entry_id Int
+  pause_start   DateTime  @db.Timestamptz
+  pause_end     DateTime? @db.Timestamptz
+  time_entry    TimeEntry @relation(fields: [time_entry_id], references: [id], onDelete: Cascade)
+}
+
+model TimeEntryComment {
+  id            Int       @id @default(autoincrement())
+  time_entry_id Int
+  author_id     Int
+  body          String
+  created_at    DateTime  @default(now()) @db.Timestamptz
+  time_entry    TimeEntry @relation(fields: [time_entry_id], references: [id], onDelete: Cascade)
+}
+
+// ─────────────────────────────────────────────
+// PHOTOS & DOCUMENTS
+// ─────────────────────────────────────────────
+
+model Photo {
+  id                Int      @id @default(autoincrement())
+  s3_key            String   @unique
+  thumbnail_s3_key  String?
+  project_id        Int?
+  task_id           Int?
+  author_id         Int
+  gps_lat           Float?
+  gps_lng           Float?
+  gps_verified      Boolean  @default(false)
+  taken_at          DateTime @db.Timestamptz
+  uploaded_at       DateTime @default(now()) @db.Timestamptz
+  file_size_bytes   Int
+  original_filename String
+
+  project  Project?       @relation(fields: [project_id], references: [id])
+  task     Task?          @relation(fields: [task_id], references: [id])
+  author   Employee       @relation(fields: [author_id], references: [id])
+  comments PhotoComment[]
+
+  @@index([project_id])
+  @@index([author_id, uploaded_at])
+}
+
+model PhotoComment {
+  id         Int      @id @default(autoincrement())
+  photo_id   Int
+  author_id  Int
+  text       String
+  created_at DateTime @default(now()) @db.Timestamptz
+  updated_at DateTime @updatedAt @db.Timestamptz
+
+  photo  Photo    @relation(fields: [photo_id], references: [id], onDelete: Cascade)
+  author Employee @relation(fields: [author_id], references: [id])
+
+  @@index([photo_id])
+  @@index([author_id])
+}
+
+model Document {
+  id                Int      @id @default(autoincrement())
+  project_id        Int
+  s3_key            String   @unique
+  original_filename String
+  mime_type         String
+  file_size_bytes   Int
+  uploaded_by_id    Int
+  uploaded_at       DateTime @default(now()) @db.Timestamptz
+
+  project Project @relation(fields: [project_id], references: [id])
+
+  @@index([project_id])
+}
+
+// ─────────────────────────────────────────────
+// TOOLS
+// ─────────────────────────────────────────────
+
+model Tool {
+  id                          Int        @id @default(autoincrement())
+  name                        String
+  code                        String?
+  photo_s3_key                String?
+  current_location_project_id Int?
+  current_location_text       String?
+  responsible_employee_id     Int?
+  status                      ToolStatus @default(Töökorras)
+  description                 String?
+  manufacturer                String?
+  model                       String?
+  created_at                  DateTime   @default(now()) @db.Timestamptz
+  updated_at                  DateTime   @updatedAt @db.Timestamptz
+  archived_at                 DateTime?  @db.Timestamptz
+
+  current_project  Project?  @relation(fields: [current_location_project_id], references: [id])
+  responsible      Employee? @relation(fields: [responsible_employee_id], references: [id])
+  task_assignments TaskTool[]
+
+  @@index([archived_at])
+}
+
+model TaskTool {
+  task_id Int
+  tool_id Int
+  task    Task @relation(fields: [task_id], references: [id])
+  tool    Tool @relation(fields: [tool_id], references: [id])
+
+  @@id([task_id, tool_id])
+}
+
+// ─────────────────────────────────────────────
+// DOCUMENT ACKNOWLEDGEMENT
+// ─────────────────────────────────────────────
+
+model InternalDocument {
+  id             Int       @id @default(autoincrement())
+  title          String
+  description    String?
+  category       String? // e.g. 'Ohutus', 'Reeglid', 'Koolitus'
+  s3_key         String // path in S3 bucket
+  version        Int       @default(1)
+  requires_ack   Boolean   @default(true)
+  uploaded_by_id Int
+  created_at     DateTime  @default(now()) @db.Timestamptz
+  updated_at     DateTime  @updatedAt @db.Timestamptz
+  archived_at    DateTime? @db.Timestamptz
+
+  uploaded_by      Employee           @relation("DocumentUploader", fields: [uploaded_by_id], references: [id])
+  assignments      DocAckAssignment[]
+  acknowledgements DocAcknowledgement[]
+
+  @@index([archived_at])
+}
+
+model DocAckAssignment {
+  id             Int            @id @default(autoincrement())
+  document_id    Int
+  employee_id    Int? // specific employee — null if group-based
+  group          EmployeeGroup? // whole group — null if employee-based
+  assigned_by_id Int
+  assigned_at    DateTime       @default(now()) @db.Timestamptz
+  due_date       DateTime?      @db.Timestamptz
+
+  document    InternalDocument @relation(fields: [document_id], references: [id])
+  employee    Employee?        @relation("AssignedEmployee", fields: [employee_id], references: [id])
+  assigned_by Employee         @relation("AssignedBy", fields: [assigned_by_id], references: [id])
+
+  @@index([document_id])
+  @@index([employee_id])
+}
+
+model DocAcknowledgement {
+  id               Int      @id @default(autoincrement())
+  document_id      Int
+  employee_id      Int
+  document_version Int // version at time of acknowledgement
+  acknowledged_at  DateTime @default(now()) @db.Timestamptz
+
+  document InternalDocument @relation(fields: [document_id], references: [id])
+  employee Employee         @relation(fields: [employee_id], references: [id])
+
+  @@unique([document_id, employee_id, document_version])
+  @@index([employee_id])
+}
+
+// ─────────────────────────────────────────────
+// AUTH SUPPORT
+// ─────────────────────────────────────────────
+
+model OtpCode {
+  id          Int       @id @default(autoincrement())
+  employee_id Int?
+  phone       String
+  code_hash   String
+  expires_at  DateTime  @db.Timestamptz
+  used_at     DateTime? @db.Timestamptz
+  created_at  DateTime  @default(now()) @db.Timestamptz
+
+  employee Employee? @relation(fields: [employee_id], references: [id])
+
+  @@index([phone, expires_at])
+}
+
+model RefreshToken {
+  id          Int       @id @default(autoincrement())
+  employee_id Int
+  token_hash  String    @unique
+  expires_at  DateTime  @db.Timestamptz
+  revoked_at  DateTime? @db.Timestamptz
+  created_at  DateTime  @default(now()) @db.Timestamptz
+
+  employee Employee @relation(fields: [employee_id], references: [id])
+}
+
+// ─────────────────────────────────────────────
+// SETTINGS
+// ─────────────────────────────────────────────
+
+model CompanySettings {
+  id           Int      @id @default(autoincrement())
+  company_name String
+  reg_code     String?
+  address      String?
+  phone        String?
+  email        String?
+  logo_s3_key  String?
+  created_at   DateTime @default(now()) @db.Timestamptz
+  updated_at   DateTime @updatedAt @db.Timestamptz
+}
+
+// ─────────────────────────────────────────────
+// ENUMS
+// ─────────────────────────────────────────────
+
+enum ProjectStatus {
+  Hinnapakkumises
+  Ettevalmistuses
+  Töös
+  Lõpetatud
+}
+
+enum TaskStatus {
+  Uus
+  Teha
+  Töös
+  Tehtud
+}
+
+enum Priority {
+  Madal
+  Keskmine
+  Kõrgeim
+}
+
+enum EmployeeGroup {
+  Paigaldus
+  Tootmine
+  Kontor
+  Ladu
+}
+
+enum EmployeeStatus {
+  Aktiivne
+  Arhiveeritud
+}
+
+enum ToolStatus {
+  Töökorras
+  Rikki
+  Hoolduses
+}
+
+enum Language {
+  et
+  ru
+}
+
+enum TimeFormat {
+  H24
+  H12
+}
+
+enum TagEntityType {
+  project
+  task
+}
+
+enum TemplateType {
+  production
+  general
+}
+
+enum AbsenceType {
+  Bolnichnyi
+  OplachivaemyiOtpusk
+  NeoplachivaemyiOtpusk
+  UchebnyiOtpusk
+  NeoplachivaemyiUchebnyiOtpusk
+  DekretnyiOtpusk
+  NeoplachivaemyiDekretnyiOtpusk
+  Komandirovka
+  DenDonora
+  DenZdorovya
+  Progul
+  OtpuskPoInvalidnosti
+  OtcovskiyOtpusk
+  OtpuskPoBerennosti
+  OtpuskPoUsynovleniyu
+  OtpuskPoUkhoduZaRebenkom
+  VoennayaSluzhba
+  DenSudebnogRazbiratelstva
+  VOzhidaniiRaboty
+  UkhodZaBolnym
+  LichnyePrichiny
+  Obuchenie
+  ProverkaZdorovya
+  SvobodnyiDenPoProsby
+  DenPogody
+  Opozdanie
+  SvobodnyiDen
+  KompensiruyushchiyOtpusk
+}
+
+// ─────────────────────────────────────────────
+// ABSENCES
+// ─────────────────────────────────────────────
+
+model Absence {
+  id            Int         @id @default(autoincrement())
+  employee_id   Int
+  type          AbsenceType
+  date_from     DateTime    @db.Date
+  date_to       DateTime    @db.Date
+  comment       String?
+  created_by_id Int
+  created_at    DateTime    @default(now()) @db.Timestamptz
+  updated_at    DateTime    @updatedAt @db.Timestamptz
+
+  employee   Employee @relation("EmployeeAbsences", fields: [employee_id], references: [id])
+  created_by Employee @relation("AbsenceCreatedBy", fields: [created_by_id], references: [id])
+
+  @@index([employee_id])
+  @@index([date_from, date_to])
+}
+
+enum NotificationType {
+  TimerForgottenStart
+  TimerForgottenStop
+}
+
+// ─────────────────────────────────────────────
+// NOTIFICATIONS
+// ─────────────────────────────────────────────
+
+model Notification {
+  id          Int              @id @default(autoincrement())
+  employee_id Int
+  type        NotificationType
+  read_at     DateTime?        @db.Timestamptz
+  created_at  DateTime         @default(now()) @db.Timestamptz
+
+  employee Employee @relation(fields: [employee_id], references: [id])
+
+  @@index([employee_id, read_at])
+  @@index([created_at])
+}
+
+// Expo push token registered per device per employee.
+// Upserted on app launch; deleted on logout (best-effort).
+model DeviceToken {
+  id          Int      @id @default(autoincrement())
+  employee_id Int
+  token       String   @unique  // ExponentPushToken[xxx]
+  created_at  DateTime @default(now()) @db.Timestamptz
+  updated_at  DateTime @updatedAt @db.Timestamptz
+
+  employee Employee @relation(fields: [employee_id], references: [id])
+
+  @@index([employee_id])
+}

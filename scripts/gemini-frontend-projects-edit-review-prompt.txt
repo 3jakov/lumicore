@@ -1,0 +1,75 @@
+Сделай focused code review frontend реализации Projects edit flow в репозитории Lumicore как senior frontend engineer.
+
+Repository:
+C:\git\lumicore
+
+Source of truth:
+- CLAUDE.md
+- docs/PRD.md
+- docs/TECH_STACK.md
+- docs/ARCHITECTURE.md
+- docs/IMPLEMENTATION_PLAN.md
+- docs/MODULE_HANDOFF_CHECKLIST.md
+
+Scope review:
+- apps/web/app/(app)/projects/[id]/edit/
+- apps/web/components/projects/
+- apps/web/hooks/
+
+Primary goal:
+Проверить качество реализации `projects/[id]/edit` после появления backend CRUD и shared-types.
+
+Review priorities:
+1. Reuse vs duplication
+   - не появился ли лишний copy-paste между create/edit
+   - не переабстрагировали ли форму в слишком общий “form engine”
+2. Nullable / dirty correctness
+   - null -> "" normalization в form state
+   - clear optional fields -> null on submit
+   - `project_manager_id` empty string -> null, not "", NaN, or undefined
+   - form does not become permanently dirty because of null/empty-string mismatch
+3. Integration correctness
+   - prefill from `useProject(id)`
+   - `PATCH /projects/:id`
+   - success/error handling
+   - cache update/invalidation
+   - redirect flow
+4. Role-aware UX
+   - `Administraator` restriction not ignored
+   - 403 handled as understandable UX
+5. Scope discipline
+   - no invented fields
+   - no employee selector yet
+   - no overbuild
+
+What counts as a finding:
+- real bug
+- incorrect nullable semantics
+- dirty-state bug
+- harmful duplication
+- over-abstraction that makes future maintenance worse
+- integration/cache bug
+- role/permission UX bug
+
+What NOT to include:
+- generic style comments
+- visual taste preferences
+- complaints that Employees selector is not implemented yet
+- backend-only findings
+
+Format:
+1. Findings first, ordered by severity
+2. For each finding:
+   - severity: P1 / P2 / P3
+   - file path
+   - lines if possible
+   - issue
+   - impact
+3. Then:
+   - “Projects edit frontend quality: acceptable / shaky / not acceptable”
+   - “Reuse vs duplication: good / mixed / poor”
+   - “Nullable/dirty correctness: good / mixed / broken”
+   - “Top 3 follow-ups”
+
+Главный вопрос:
+Это хороший production-minded edit flow, или в нём уже заложен технический долг, который ударит по create/edit evolution?

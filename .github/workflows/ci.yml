@@ -1,0 +1,80 @@
+name: CI
+
+on:
+  push:
+    branches: [develop, main]
+  pull_request:
+    branches: [develop, main]
+
+jobs:
+  typecheck:
+    name: Typecheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v3
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @lumicore/shared-types build
+      - run: pnpm --filter @lumicore/api prisma:generate
+      - run: pnpm --filter @lumicore/api typecheck
+      - run: pnpm --filter @lumicore/web typecheck
+
+  api-tests:
+    name: API Tests
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: lumico
+          POSTGRES_PASSWORD: lumico
+          POSTGRES_DB: lumico_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v3
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @lumicore/shared-types build
+      - run: pnpm --filter @lumicore/api prisma:generate
+      - run: pnpm --filter @lumicore/api test
+        env:
+          DATABASE_URL: postgresql://lumico:lumico@localhost:5432/lumico_test
+          JWT_SECRET: test-secret-min-32-chars-for-testing
+          REFRESH_TOKEN_SECRET: test-refresh-secret-min-32-chars
+
+  web-build:
+    name: Web Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v3
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @lumicore/shared-types build
+      - run: pnpm --filter @lumicore/web build
+        env:
+          NEXT_PUBLIC_API_URL: http://localhost:3001
+          NEXT_PUBLIC_WS_URL: ws://localhost:3001

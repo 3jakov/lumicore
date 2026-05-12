@@ -1,0 +1,17 @@
+'use client';
+
+import { useEffect } from 'react';
+
+export function ServiceWorkerRegister(): null {
+  useEffect(() => {
+    if (!('serviceWorker' in navigator)) {
+      return;
+    }
+
+    navigator.serviceWorker.register('/sw.js', { scope: '/' }).catch(() => {
+      // Installability should never block the app shell.
+    });
+  }, []);
+
+  return null;
+}

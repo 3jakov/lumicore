@@ -26,7 +26,7 @@
 
 ## 1. Executive Summary
 
-LUMICO is replacing Remato — their current project and workforce management tool — with a purpose-built platform. The replacement must handle all operational workflows: project lifecycle management, task assignment and templates, time tracking with mandatory project linkage, team scheduling, GPS-verified photo documentation, tool tracking, and internal chat.
+LUMICO is replacing Remato — their current project and workforce management tool — with a purpose-built platform. The replacement must handle all operational workflows: project lifecycle management, task assignment and templates, time tracking with mandatory project linkage, team scheduling, GPS-verified photo documentation, tool tracking, document management, and internal document acknowledgement.
 
 This PRD covers **Phase 1: Operations Core**. Phase 2 (budget/margin, CRM, materials, accounting integration) is documented separately.
 
@@ -139,8 +139,8 @@ One employee can hold multiple roles simultaneously (e.g., Julian Kosheliev: Too
 | Team: Praegu (live), Tunnitabel (timesheet), Aruanded (reports), Inimesed (people) | Yes |
 | Gallery with GPS photo capture | Yes |
 | Documents per project (upload, list, download) | Yes |
+| Document Acknowledgement (internal policies, safety docs, mandatory read + confirm) | Yes |
 | Settings: roles, groups, tags, company info | Yes |
-| Chat (auto-created on project create, basic messaging) | Yes |
 | Tools (basic: list, status, assign to project) | Yes |
 | PWA (mobile) | Yes |
 | ET + RU i18n | Yes |
@@ -153,6 +153,7 @@ One employee can hold multiple roles simultaneously (e.g., Julian Kosheliev: Too
 - Materials module (Materjalid)
 - Full Tools module (calendar, reports, maintenance history)
 - Merit Aktiva accounting integration
+- Chat / Vestlus (internal messaging, project group chats)
 
 ---
 
@@ -163,7 +164,7 @@ One employee can hold multiple roles simultaneously (e.g., Julian Kosheliev: Too
 ### 7.1 Authentication & Onboarding
 
 **FR-AUTH-01** — Login via phone number OTP or email+password.
-**FR-AUTH-02** — JWT access token (short-lived) + refresh token (long-lived, httpOnly cookie).
+**FR-AUTH-02** — JWT access token (short-lived, 15 min) + refresh token (long-lived, 7 days, rotated on every use). The refresh endpoint must be dual-mode: accept the refresh token from an httpOnly cookie (web/PWA clients) **or** from the `refresh_token` field in the request body (future native mobile clients). Both modes are implemented in Phase 1 so that no backend change is needed when native apps are introduced. The response always sets the httpOnly cookie **and** returns `{ refresh_token }` in the body.
 **FR-AUTH-03** — When an Administrator saves a new employee's phone or email, the system automatically sends an invitation (SMS or email) with a registration link.
 **FR-AUTH-04** — Employee selects preferred language (ET/RU) and time format (24h/12h) in profile settings. UI re-renders immediately on change.
 **FR-AUTH-05** — All sessions store timezone as Europe/Tallinn; all API timestamps in UTC; all display in local time.
@@ -191,8 +192,7 @@ One employee can hold multiple roles simultaneously (e.g., Julian Kosheliev: Too
 **FR-PROJ-07** — Required fields: name, status. All other fields optional at creation.
 **FR-PROJ-08** — Location field uses geocoded address (Estonian address lookup). Stores lat/lng alongside human-readable address.
 **FR-PROJ-09** — Client sub-form fields: company_name, reg_code (Estonian business registry format EV-XXXXXXXX), contact_name, phone (+372), email.
-**FR-PROJ-10** — `auto_create_chat` toggle: when enabled and project is saved, automatically create a group chat containing the project manager and all assigned employees.
-**FR-PROJ-11** — People field: multi-select from active employees list.
+**FR-PROJ-10** — People field: multi-select from active employees list.
 **FR-PROJ-12** — Tags: multi-select from company tag library (managed in Settings).
 **FR-PROJ-13** — Contract number: free text, optional.
 
@@ -398,14 +398,27 @@ This is the most critical module. The primary goal is to eliminate unassigned ti
 
 ---
 
-### 7.8 Chat Module (Vestlus)
+### 7.8 Document Acknowledgement Module (Dokumentide Kinnitus)
 
-**FR-CHAT-01** — Chat sidebar lists all conversations: project chats + direct messages.
-**FR-CHAT-02** — When a project is created with `auto_create_chat = true`: a group chat is automatically created, named after the project, with all assigned employees and the project manager as members.
-**FR-CHAT-03** — Message types: text, photo attachment, file attachment.
-**FR-CHAT-04** — Real-time delivery via WebSocket. Unread count badge on sidebar.
-**FR-CHAT-05** — Direct messages: employee can start a 1:1 chat with any other employee.
-**FR-CHAT-06** — Message read receipts (seen/delivered indicators).
+This module ensures employees read and confirm internal company documents: safety instructions, work rules, policies, onboarding materials.
+
+#### 7.8.1 Admin — Document Management
+
+**FR-DACK-01** — Administrator uploads internal documents (PDF, DOCX) via the same presigned S3 flow used for project documents.
+**FR-DACK-02** — Each document has: title, description, category (e.g., "Ohutus" / safety, "Reeglid" / rules, "Koolitus" / training), version number, and uploaded_by.
+**FR-DACK-03** — When a new version of a document is uploaded (PATCH with new file), version counter increments automatically. Prior acknowledgements are invalidated — assigned employees must re-acknowledge.
+**FR-DACK-04** — Administrator assigns documents to: specific employees (multi-select) OR entire groups (Paigaldus, Tootmine, Kontor, Ladu). Both can be combined.
+**FR-DACK-05** — Assignment can include an optional due date.
+**FR-DACK-06** — Administrator sees a compliance matrix for each document: rows = assigned employees, columns = status (Acknowledged / Pending / Overdue). Exportable to Excel.
+**FR-DACK-07** — Documents can be soft-archived (hidden from employee view, assignments preserved for audit).
+
+#### 7.8.2 Employee — Acknowledgement Flow
+
+**FR-DACK-08** — Employee sees a dedicated "Minu dokumendid" (My Documents) section in the app. Shows all documents assigned to them or their group, with status: Ootab kinnitust (pending) / Kinnitatud (acknowledged).
+**FR-DACK-09** — Pending documents display a badge/counter in the sidebar navigation.
+**FR-DACK-10** — Employee opens a document (rendered in-browser or downloaded), then taps/clicks "Olen lugenud ja nõustun" (I have read and agree).
+**FR-DACK-11** — Confirmation records: employee_id, document_id, document_version, acknowledged_at timestamp. Cannot be undone.
+**FR-DACK-12** — If a new document version is published, the acknowledgement badge reappears for all assigned employees regardless of prior acknowledgement.
 
 ---
 
@@ -463,7 +476,6 @@ interface Project {
   project_manager?: Employee;
   contract_number?: string;
   tags: Tag[];
-  auto_create_chat: boolean;     // default: false
 
   client: {
     company_name?: string;
@@ -648,7 +660,48 @@ enum ToolStatus {
 }
 ```
 
-### 8.7 Tag
+### 8.7 InternalDocument & Acknowledgement
+
+```typescript
+interface InternalDocument {
+  id: number;
+  title: string;                  // required
+  description?: string;
+  category?: string;              // e.g., 'Ohutus', 'Reeglid', 'Koolitus'
+  s3_key: string;                 // stored file key in S3
+  version: number;                // starts at 1, increments on new file upload
+  uploaded_by_id: number;
+  requires_ack: boolean;          // default: true
+  created_at: Date;
+  updated_at: Date;
+  archived_at?: Date;
+}
+
+interface DocAckAssignment {
+  id: number;
+  document_id: number;
+  employee_id?: number;           // specific employee assignment
+  group?: EmployeeGroup;          // OR group assignment
+  assigned_by_id: number;
+  assigned_at: Date;
+  due_date?: Date;
+}
+
+interface DocAcknowledgement {
+  id: number;
+  document_id: number;
+  employee_id: number;
+  document_version: number;       // version at time of acknowledgement
+  acknowledged_at: Date;          // immutable once created
+}
+```
+
+**Compliance status per employee per document:**
+- `pending` — assigned, not yet acknowledged for current version
+- `acknowledged` — current version acknowledged
+- `overdue` — due_date passed, not acknowledged
+
+### 8.9 Tag
 
 ```typescript
 interface Tag {
@@ -660,7 +713,7 @@ interface Tag {
 }
 ```
 
-### 8.8 TaskTemplate
+### 8.10 TaskTemplate
 
 ```typescript
 interface TaskTemplate {
@@ -685,7 +738,6 @@ interface TaskTemplate {
 | BR-003 | Duration is always computed: (ended_at - started_at) - sum(pause durations). Never accepted as manual input | Computed server-side, not in API request body |
 | BR-004 | Project prefix is QUOT- when status = Hinnapakkumises; P- for all other statuses | Computed field, updated on every status change |
 | BR-005 | Overtime (ÜT) = total hours logged - norm hours. Can be negative (deficit). Display negatives in red | Computed in timesheet query |
-| BR-006 | Creating a project with auto_create_chat = true automatically creates a group chat with all assigned employees | Triggered in backend project creation service |
 | BR-007 | Saving an employee's phone or email for the first time triggers an automatic invitation | Backend hook on employee update |
 | BR-008 | Photos captured via PWA camera must not save to device personal gallery | Frontend: use getUserMedia + canvas, never HTMLInputElement type=file for camera |
 | BR-009 | GPS coordinates captured at photo capture time from device geolocation API | Frontend: navigator.geolocation.getCurrentPosition() before/during capture |
@@ -695,6 +747,9 @@ interface TaskTemplate {
 | BR-013 | Sensitive employee fields (hourly_rate, personal_id, birth_date) are only returned in API responses for Administraator role | Backend field-level authorization in serializer |
 | BR-014 | A task template cannot be deleted if tasks using it exist; can only be deactivated | Soft delete with is_active flag |
 | BR-015 | Employee project_access = ALL grants access to every project; specific list restricts to those IDs | Middleware check on all project-scoped endpoints |
+| BR-016 | An employee can only acknowledge a document assigned to them directly or to their group | Backend validates assignment before recording acknowledgement |
+| BR-017 | Uploading a new file to an existing InternalDocument increments version and invalidates all prior acknowledgements — employees must re-acknowledge | Version bump on PATCH with new s3_key; acknowledgement status computed from version match |
+| BR-018 | An acknowledgement record is immutable — once created it cannot be deleted or modified | No DELETE or PATCH on DocAcknowledgement; audit trail must remain intact |
 
 ---
 
@@ -709,8 +764,8 @@ interface TaskTemplate {
 
 ### 10.2 Security
 
-- JWT tokens signed with RS256.
-- Refresh tokens stored as httpOnly secure cookies.
+- JWT tokens signed with HS256 (symmetric — adequate for single-service architecture).
+- Refresh tokens delivered via httpOnly, Secure, SameSite=Strict cookie (web/PWA) **and** returned in the response body for native client storage. The `POST /auth/refresh` endpoint accepts the token from either source (cookie takes priority).
 - Sensitive employee data (hourly_rate, personal_id) only returned for Administraator.
 - All API endpoints authenticated; role-checked per route.
 - Photos served via signed S3 URLs (1-hour expiry), not public URLs.
@@ -760,12 +815,25 @@ interface TaskTemplate {
 **Then** the system rejects the entry with an error message "Entry duration cannot be zero"
 **And** the entry is not saved
 
-### AC-03: Project Chat Auto-Creation
-**Given** an administrator creates a project with auto_create_chat enabled
-**When** the project is saved
-**Then** a group chat is created automatically
-**And** all assigned employees and the project manager are members
-**And** the chat appears in Vestlus for all members
+### AC-03: Document Acknowledgement — Employee Flow
+**Given** an administrator uploads a safety document and assigns it to the "Paigaldus" group
+**When** a Paigaldusspetsialist logs in
+**Then** a pending badge appears in the sidebar navigation
+**And** the document appears in "Minu dokumendid" with status "Ootab kinnitust"
+**When** the employee opens and confirms the document
+**Then** the status changes to "Kinnitatud" and the badge disappears
+**And** the acknowledgement record stores employee_id, document_version, and acknowledged_at
+
+### AC-03b: Document Acknowledgement — Version Invalidation
+**Given** an employee has acknowledged version 1 of a safety document
+**When** the administrator uploads a new version (version 2)
+**Then** the employee's acknowledgement status resets to "Ootab kinnitust"
+**And** the pending badge reappears in their sidebar
+
+### AC-03c: Document Acknowledgement — Compliance View
+**Given** an administrator opens the compliance matrix for a document
+**Then** they see one row per assigned employee
+**And** each row shows: name, group, status (Acknowledged / Pending / Overdue), acknowledged_at (if done)
 
 ### AC-04: Photo GPS Capture
 **Given** a field worker opens the camera in the PWA
@@ -824,6 +892,7 @@ The following features are explicitly excluded from Phase 1 and documented in th
 | Full Tools module (maintenance history, calendar) | Basic tools sufficient for Phase 1 |
 | Merit Aktiva accounting integration | Third-party API, separate project |
 | Native mobile app (iOS/Android) | PWA sufficient for Phase 1 |
+| Chat / Vestlus (internal messaging, project group chats) | Deferred to Phase 2; acknowledgement module covers most critical communication need |
 
 ---
 

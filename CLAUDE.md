@@ -1,7 +1,7 @@
 # CLAUDE.md — AI Development Guidelines
 **Project:** LUMICO Field & Production Management Platform
-**For:** Claude Code (backend) + Codex (frontend)
-**Last updated:** 2026-04-05
+**For:** Claude Code (backend + mobile) + Codex (web frontend)
+**Last updated:** 2026-05-06
 
 ---
 
@@ -25,7 +25,7 @@ This file is the primary reference for AI agents working on this codebase. Read 
 │   │   │   ├── employees/
 │   │   │   ├── photos/
 │   │   │   ├── tools/
-│   │   │   ├── chat/
+│   │   │   ├── doc-acknowledgement/
 │   │   │   ├── settings/
 │   │   │   ├── common/        # shared guards, decorators, pipes, interceptors
 │   │   │   ├── database/      # Prisma schema, migrations, seeds
@@ -36,7 +36,7 @@ This file is the primary reference for AI agents working on this codebase. Read 
 │   │   ├── test/
 │   │   └── package.json
 │   │
-│   └── web/                   # Next.js 14 frontend (Codex owns this)
+│   └── web/                   # Next.js 16 frontend (Codex owns this)
 │       ├── app/               # App Router
 │       ├── components/
 │       ├── hooks/
@@ -70,6 +70,7 @@ This file is the primary reference for AI agents working on this codebase. Read 
 |---|---|---|
 | `apps/api/` — entire NestJS backend | Claude Code | All API endpoints, DB schema, business logic |
 | `apps/web/` — entire Next.js frontend | Codex | All UI components, pages, hooks, client state |
+| `apps/mobile/` — React Native (Expo) app | Claude Code | Worker-first mobile app, Expo SDK 55 |
 | `packages/shared-types/` | Both | Claude Code defines types; Codex consumes them. PRs from either. |
 | `docs/` | Both | Either agent can update documentation |
 | `docker-compose.yml` | Claude Code | Infrastructure files |
@@ -152,10 +153,10 @@ created_at, updated_at   // always present on every model
 ```
 # Auth
 POST   /api/v1/auth/otp/request       # Request OTP via phone
-POST   /api/v1/auth/otp/verify        # Verify OTP, receive tokens
-POST   /api/v1/auth/login             # Email+password login
-POST   /api/v1/auth/refresh           # Refresh access token
-POST   /api/v1/auth/logout
+POST   /api/v1/auth/otp/verify        # Verify OTP → { access_token, refresh_token } + Set-Cookie: refresh_token
+POST   /api/v1/auth/login             # Email+password → { access_token, refresh_token } + Set-Cookie: refresh_token
+POST   /api/v1/auth/refresh           # Dual-mode: cookie (web) OR body { refresh_token } (native) → { access_token, refresh_token } + Set-Cookie: refresh_token
+POST   /api/v1/auth/logout            # Invalidate refresh token (clears cookie + DB record)
 
 # Projects
 GET    /api/v1/projects               # List (filterable, paginated)
@@ -175,6 +176,7 @@ GET    /api/v1/tasks/templates        # All task templates
 # Time Tracking
 GET    /api/v1/time-entries           # List (filter by employee, project, date)
 POST   /api/v1/time-entries           # Create (timer start or manual entry)
+GET    /api/v1/time-entries/active    # Own currently-running timer or null (used by mobile)
 GET    /api/v1/time-entries/:id
 PATCH  /api/v1/time-entries/:id
 POST   /api/v1/time-entries/:id/pause
@@ -188,11 +190,19 @@ GET    /api/v1/employees
 POST   /api/v1/employees
 GET    /api/v1/employees/:id
 PATCH  /api/v1/employees/:id
+PATCH  /api/v1/employees/me           # Update own profile (language, name, etc.)
 POST   /api/v1/employees/:id/archive
 
-# Photos
-POST   /api/v1/photos/upload          # Multipart upload
+# Photos (two-step presigned upload)
+POST   /api/v1/photos/upload-url      # Step 1: get presigned S3 PUT URL
+POST   /api/v1/photos                 # Step 2: save metadata after direct S3 upload
 GET    /api/v1/photos                 # List with filters
+
+# Documents
+POST   /api/v1/documents/upload-url   # Step 1: get presigned S3 PUT URL
+POST   /api/v1/documents              # Step 2: save metadata after direct S3 upload
+GET    /api/v1/documents              # List (filter by project_id)
+DELETE /api/v1/documents/:id          # Hard delete (not a business entity)
 
 # Tools
 GET    /api/v1/tools
@@ -200,11 +210,16 @@ POST   /api/v1/tools
 GET    /api/v1/tools/:id
 PATCH  /api/v1/tools/:id
 
-# Chat
-GET    /api/v1/chat/conversations
-POST   /api/v1/chat/conversations
-GET    /api/v1/chat/conversations/:id/messages
-POST   /api/v1/chat/conversations/:id/messages
+# Internal Documents & Acknowledgements
+POST   /api/v1/internal-documents/upload-url      # Presigned S3 PUT URL
+POST   /api/v1/internal-documents                 # Save metadata (title, category, s3_key)
+GET    /api/v1/internal-documents                 # Admin: list all documents
+PATCH  /api/v1/internal-documents/:id             # Admin: update (new file = version bump)
+DELETE /api/v1/internal-documents/:id             # Admin: soft archive
+POST   /api/v1/internal-documents/:id/assign      # Admin: assign to employees/groups; payload includes optional due_date
+GET    /api/v1/internal-documents/:id/status      # Admin: compliance matrix; status = acknowledged | pending | overdue (computed, not stored)
+GET    /api/v1/internal-documents/my              # Employee: my pending + acknowledged docs; includes computed overdue flag
+POST   /api/v1/internal-documents/:id/acknowledge # Employee: confirm acknowledgement
 
 # Settings
 GET    /api/v1/settings/tags
@@ -212,8 +227,15 @@ POST   /api/v1/settings/tags
 PATCH  /api/v1/settings/tags/:id
 DELETE /api/v1/settings/tags/:id
 GET    /api/v1/settings/roles
-# ... similar CRUD for roles, groups
+POST   /api/v1/settings/roles
+PATCH  /api/v1/settings/roles/:id
+DELETE /api/v1/settings/roles/:id
+# Groups: read-only in Phase 1 — the four groups (Paigaldus, Tootmine, Kontor, Ladu) are fixed
+# No POST/PATCH/DELETE for groups in Phase 1 (per PRD FR-SET-10)
+GET    /api/v1/settings/groups
 ```
+
+**Last updated:** 2026-04-08
 
 ### Database — Prisma Rules
 
@@ -252,11 +274,22 @@ computedDuration = differenceInSeconds(entry.ended_at, entry.started_at)
 function getProjectPrefix(status: ProjectStatus): 'QUOT' | 'P' {
   return status === ProjectStatus.Hinnapakkumises ? 'QUOT' : 'P';
 }
+```
 
-// BR-006: Auto-create chat
-if (dto.auto_create_chat) {
-  await this.chatService.createProjectGroupChat(project, assignedEmployees);
+**Document Acknowledgement:**
+```typescript
+// BR-016: Employee can only acknowledge if assigned (direct or via group)
+const isAssigned = await this.checkAssignment(employeeId, documentId, employee.group);
+if (!isAssigned) throw new ForbiddenException('Document not assigned to this employee');
+
+// BR-017: New file upload increments version, invalidates prior acks
+if (dto.s3_key && dto.s3_key !== document.s3_key) {
+  newVersion = document.version + 1;
+  // Existing DocAcknowledgement rows remain (audit trail) but status computed by version mismatch
 }
+
+// BR-018: Acknowledgements are immutable — no DELETE, no PATCH
+// DocAcknowledgement has no update/delete service methods
 ```
 
 **Employees:**
@@ -277,6 +310,47 @@ if (!requestingUser.roles.includes('Administraator')) {
 }
 ```
 
+### Auth — Dual-Mode Refresh Token
+
+**Every auth response** (OTP verify, login, refresh) must set the cookie AND return the token in the body:
+```typescript
+// Shared helper — call this instead of manually setting cookie + body each time
+private issueTokenResponse(res: Response, accessToken: string, refreshToken: string) {
+  res.cookie('refresh_token', refreshToken, {
+    httpOnly: true, secure: true, sameSite: 'strict',
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+  });
+  return { access_token: accessToken, refresh_token: refreshToken };
+}
+```
+
+**`RefreshTokenDto`** (used by `POST /auth/refresh`):
+```typescript
+// refresh-token.dto.ts
+import { IsOptional, IsString } from 'class-validator';
+export class RefreshTokenDto {
+  @IsOptional()
+  @IsString()
+  refresh_token?: string;  // undefined = web client (uses cookie); present = native client
+}
+```
+
+**`POST /auth/refresh` controller method:**
+```typescript
+@Post('refresh')
+@HttpCode(200)
+async refresh(
+  @Req() req: Request,
+  @Body() body: RefreshTokenDto,
+  @Res({ passthrough: true }) res: Response,
+) {
+  const incomingToken = req.cookies?.refresh_token ?? body.refresh_token;
+  if (!incomingToken) throw new UnauthorizedException('No refresh token provided');
+  const { accessToken, refreshToken } = await this.authService.refreshTokens(incomingToken);
+  return this.issueTokenResponse(res, accessToken, refreshToken);
+}
+```
+
 ### Authorization
 
 - Use `@UseGuards(JwtAuthGuard, RolesGuard)` on all protected routes.
@@ -292,9 +366,7 @@ if (!requestingUser.roles.includes('Administraator')) {
   - `timer:stopped` — payload: `{ employee_id, time_entry_id }`
   - `timer:paused` — payload: `{ employee_id, time_entry_id }`
   - `timer:resumed` — payload: `{ employee_id, time_entry_id }`
-- Events emitted by server for Chat:
-  - `chat:message` — payload: `{ conversation_id, message }`
-  - `chat:read` — payload: `{ conversation_id, employee_id, message_id }`
+- No additional WebSocket events beyond timer events in Phase 1. Chat WebSocket events are Phase 2.
 - Authentication: WebSocket connection requires JWT in handshake `auth.token` field.
 
 ### Timezone Handling
@@ -317,7 +389,7 @@ const tallinDate = toZonedTime(utcDate, 'Europe/Tallinn');
 Required in `apps/api/.env`:
 ```
 DATABASE_URL=postgresql://user:pass@localhost:5432/lumico
-JWT_SECRET=...          # RS256 private key path or secret
+JWT_SECRET=...          # HS256 symmetric secret
 JWT_EXPIRES_IN=15m
 REFRESH_TOKEN_SECRET=...
 REFRESH_TOKEN_EXPIRES_IN=7d
@@ -348,7 +420,7 @@ SOCKET_CORS_ORIGIN=http://localhost:3000
 
 ### Framework & Patterns
 
-- **Next.js 14** with the App Router.
+- **Next.js 16** with the App Router.
 - Server Components by default. Use `'use client'` only when needed (event handlers, browser APIs, hooks).
 - State management: React Query (TanStack Query) for server state. Zustand for minimal global client state (auth, current user, active timer).
 - Styling: Tailwind CSS. No CSS modules or styled-components.
@@ -364,7 +436,7 @@ components/
 ├── time-tracking/       # TimerWidget, TimeEntryRow, TimesheetGrid...
 ├── team/                # EmployeeCard, PraeguBoard, TimesheetExport...
 ├── photos/              # PhotoGrid, PhotoCapture, PhotoLightbox...
-├── chat/                # ChatSidebar, MessageList, MessageInput...
+├── doc-acknowledgement/ # DocList, DocAckButton, ComplianceMatrix...
 └── tools/               # ToolCard, ToolForm...
 ```
 
@@ -392,7 +464,10 @@ components/
 // Use getUserMedia, NOT <input type="file" capture="camera">
 // getUserMedia gives us control to prevent gallery saves
 const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
-// Draw to canvas, get blob, call GPS, upload blob to /api/v1/photos/upload
+// Draw to canvas, get blob, call GPS
+// Step 1: POST /api/v1/photos/upload-url → get presigned S3 PUT URL
+// Step 2: PUT blob directly to S3 using presigned URL
+// Step 3: POST /api/v1/photos with { s3_key, project_id, task_id, gps_lat, gps_lng, taken_at }
 // Never append to DOM in a way that triggers save-to-gallery
 ```
 
@@ -451,7 +526,7 @@ export * from './time-entry.types';
 export * from './employee.types';
 export * from './photo.types';
 export * from './tool.types';
-export * from './chat.types';
+export * from './doc-acknowledgement.types';
 export * from './api-responses.types';
 ```
 
@@ -485,7 +560,7 @@ docs(api): add timesheet endpoint to CLAUDE.md
 test(time-tracking): add unit tests for zero-duration validation
 ```
 
-Scopes: `auth`, `projects`, `tasks`, `time-tracking`, `employees`, `photos`, `tools`, `chat`, `settings`, `infra`, `api`, `web`.
+Scopes: `auth`, `projects`, `tasks`, `time-tracking`, `employees`, `photos`, `tools`, `doc-ack`, `settings`, `infra`, `api`, `web`.
 
 ### PR Rules
 
@@ -559,6 +634,97 @@ pnpm --filter web dev   # runs on :3000
 8. **Do not mix ET and RU strings in a single string constant.** All strings must be in both translation files.
 9. **Do not allow timer start without project validation check on the backend.** The frontend validation is UX; the backend validation is the source of truth.
 10. **Do not send full employee objects in list responses if the requester is not an admin.** Strip sensitive fields in the serializer.
+11. **Do not implement data mutations as Next.js Server Actions or Next.js API routes.** All mutations must go through `POST/PATCH/DELETE /api/v1/*` NestJS endpoints. Server Actions are web-only and cannot be called by future native iOS/Android apps.
+
+---
+
+## Mobile App — Claude Code Guidelines (apps/mobile)
+
+### Stack
+
+- **Expo SDK 55** (React Native 0.76.7) with **Expo Router** (file-based, like Next.js App Router)
+- **NativeWind v4** for Tailwind-based styling (same class names as web where possible)
+- **Stack navigator** as primary navigation — no tabs. Home screen is the hub; workers drill down.
+- **expo-secure-store** for JWT tokens (iOS Keychain / Android Keystore — never AsyncStorage)
+- **Zustand** for auth state only (`src/store/auth.store.ts`)
+- **TanStack React Query v5** for server state (same library as web)
+- **`src/lib/api-client.ts`** — fetch wrapper with `setTokenProvider()` injection
+
+### Project Layout
+
+```
+apps/mobile/
+├── app/                     # Expo Router routes
+│   ├── _layout.tsx          # Root: QueryClient + SafeArea + AuthGate redirect
+│   ├── (auth)/login.tsx     # Login screen
+│   └── (app)/               # Authenticated stack
+│       ├── index.tsx        # Home hub
+│       ├── timer.tsx        # Timer screen
+│       ├── camera.tsx       # Camera capture
+│       └── ...              # Other screens
+├── src/
+│   ├── lib/api-client.ts    # API wrapper
+│   ├── store/auth.store.ts  # Zustand auth store
+│   ├── hooks/               # React Query hooks per domain
+│   ├── components/          # Components grouped by domain (timer/, camera/, ...)
+│   └── theme/colors.ts      # JS color constants matching Tailwind tokens
+├── tailwind.config.js       # Dark theme tokens
+├── metro.config.js          # Monorepo: watchFolders + withNativeWind
+└── tsconfig.json            # "types": ["nativewind/types"] required for className
+```
+
+### API Client Rules
+
+`apiClient.post` and `apiClient.patch` accept `options?: { body?: unknown }`:
+
+```typescript
+// ✅ Correct
+apiClient.post('/time-entries', { body: dto })
+apiClient.post('/time-entries/:id/pause')        // no body — omit second arg
+apiClient.patch('/employees/me', { body: { language: 'ru' } })
+apiClient.get('/time-entries/active')
+
+// ❌ Wrong — DTO passed directly as second arg
+apiClient.post('/time-entries', dto)
+```
+
+### NativeWind Requirement
+
+**Always add `"types": ["nativewind/types"]` to `compilerOptions` in `tsconfig.json`.**
+Without it, TypeScript rejects `className` on all RN components.
+
+### Design Tokens
+
+| Token | Value | Use |
+|---|---|---|
+| `bg-surface-0` | `#111827` | Screen background |
+| `bg-surface-1` | `#1F2937` | Cards |
+| `bg-surface-2` | `#374151` | Inputs, secondary buttons |
+| `text-text-primary` | `#F9FAFB` | Primary text |
+| `text-text-muted` | `#9CA3AF` | Labels, placeholders |
+| `text-accent-500` | `#F59E0B` | Links, active states |
+| `bg-timer-active` | `#16A34A` | Start button |
+| `bg-timer-stop` | `#DC2626` | Stop button, errors |
+
+### Milestone Reference
+
+See `docs/MOBILE_IMPLEMENTATION_PLAN.md` for full scope, milestones M0–M5, and architecture decisions.
+
+Current status:
+- **M0 Foundation** ✅ — auth, routing, NativeWind, monorepo integration
+- **M1 Timer MVP** ✅ — `GET /time-entries/active` + full timer screen
+- **M2 Camera MVP** 🔜
+- **M3 Projects + Tasks** 🔜
+- **M4 My Timesheet** 🔜
+- **M5 Push Notifications** 🔜
+
+### Commit Scope
+
+Use scope `mobile` for `apps/mobile`-only changes:
+```
+feat(mobile): add camera capture with GPS
+feat(time-tracking): add project_name to TimeEntryDetail response
+```
 
 ---
 
@@ -567,5 +733,25 @@ pnpm --filter web dev   # runs on :3000
 - Full PRD (Phase 1): `docs/PRD.md`
 - Tech stack decisions and rationale: `docs/TECH_STACK.md`
 - System architecture and data flow: `docs/ARCHITECTURE.md`
+- Module handoff review checklist: `docs/MODULE_HANDOFF_CHECKLIST.md`
+- Mobile implementation plan (Phase 2): `docs/MOBILE_IMPLEMENTATION_PLAN.md`
+- Mobile readiness rules: `docs/MOBILE_READINESS.md`
 - Prisma schema: `apps/api/prisma/schema.prisma`
 - API base URL: `http://localhost:3001/api/v1` (development)
+
+## Module Handoff Review Workflow
+
+Use `docs/MODULE_HANDOFF_CHECKLIST.md` before declaring any module ready for frontend integration.
+
+How we use it:
+
+- **Codex** uses it when checking whether frontend can safely begin integrating a module.
+- **Claude Code** uses it before claiming backend handoff readiness for a module.
+- **Gemini** reviews should be framed around this checklist so findings stay focused on real handoff blockers rather than generic code quality commentary.
+
+Expected outcome of a handoff review:
+
+- `Backend ready? yes / mostly / no`
+- `Shared contract ready? yes / mostly / no`
+- `Frontend can proceed safely? yes / mostly / no`
+- `Top 3 blockers or follow-ups`
