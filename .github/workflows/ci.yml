@@ -21,6 +21,7 @@ jobs:
           cache: 'pnpm'
       - run: pnpm install --frozen-lockfile
       - run: pnpm --filter @lumicore/shared-types build
+      - run: pnpm --filter @lumicore/api prisma:generate
       - run: pnpm --filter @lumicore/api typecheck
       - run: pnpm --filter @lumicore/web typecheck
 
