@@ -11,7 +11,9 @@
       "resizeMode": "contain",
       "backgroundColor": "#0a0a0a"
     },
-    "assetBundlePatterns": ["**/*"],
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "ee.lumico.lumicore"
@@ -28,11 +30,15 @@
       "expo-secure-store",
       [
         "expo-camera",
-        { "cameraPermission": "Lumicore needs camera access to capture job-site photos." }
+        {
+          "cameraPermission": "Lumicore needs camera access to capture job-site photos."
+        }
       ],
       [
         "expo-location",
-        { "locationWhenInUsePermission": "Lumicore uses your location to tag job-site photos with GPS coordinates." }
+        {
+          "locationWhenInUsePermission": "Lumicore uses your location to tag job-site photos with GPS coordinates."
+        }
       ],
       [
         "expo-notifications",
@@ -48,9 +54,7 @@
     "extra": {
       "apiUrl": "http://localhost:3001/api/v1",
       "wsUrl": "ws://localhost:3001",
-      "eas": {
-        "projectId": "REPLACE_WITH_EAS_PROJECT_ID"
-      }
+      "eas": {}
     }
   }
 }
