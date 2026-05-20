@@ -33,14 +33,6 @@
         {
           "locationWhenInUsePermission": "Lumicore uses your location to tag job-site photos with GPS coordinates."
         }
-      ],
-      [
-        "expo-notifications",
-        {
-          "color": "#F59E0B",
-          "sounds": [],
-          "mode": "production"
-        }
       ]
     ],
     "scheme": "lumicore",
