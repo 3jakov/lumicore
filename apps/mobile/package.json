@@ -10,6 +10,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@expo/metro-runtime": "~55.0.11",
     "@lumicore/shared-types": "workspace:*",
     "@tanstack/react-query": "^5.28.0",
     "expo": "~55.0.25",
