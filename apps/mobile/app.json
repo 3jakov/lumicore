@@ -37,8 +37,8 @@
     ],
     "scheme": "lumicore",
     "extra": {
-      "apiUrl": "http://192.168.10.33:3001/api/v1",
-      "wsUrl": "ws://192.168.10.33:3001",
+      "apiUrl": "http://10.0.2.2:3001/api/v1",
+      "wsUrl": "ws://10.0.2.2:3001",
       "eas": {}
     }
   }
