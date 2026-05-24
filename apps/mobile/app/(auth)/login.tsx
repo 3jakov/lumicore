@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 
 import { useAuthStore } from '@/store/auth.store';
+import { ApiError } from '@/lib/api-client';
 import { colors } from '@/theme/colors';
 
 export default function LoginScreen() {
@@ -25,8 +26,12 @@ export default function LoginScreen() {
     setLoading(true);
     try {
       await login(email.trim(), password);
-    } catch {
-      setError('Неверный email или пароль');
+    } catch (err) {
+      if (err instanceof ApiError && (err.status === 401 || err.status === 400)) {
+        setError('Неверный email или пароль');
+      } else {
+        setError('Нет соединения с сервером. Проверьте сеть.');
+      }
     } finally {
       setLoading(false);
     }
