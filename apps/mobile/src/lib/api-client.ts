@@ -27,7 +27,9 @@ class ApiClient {
       headers: { ...this.authHeader() },
     });
     if (!res.ok) throw new ApiError(res.status, await res.text());
-    return res.json() as Promise<T>;
+    const text = await res.text();
+    if (!text) return null as T;
+    return JSON.parse(text) as T;
   }
 
   async post<T>(path: string, options?: RequestOptions): Promise<T> {

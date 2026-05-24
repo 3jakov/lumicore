@@ -125,10 +125,15 @@ export class TimeTrackingController {
    * Used by mobile to hydrate the timer screen on startup.
    */
   @Get('active')
-  findActive(
+  async findActive(
     @CurrentUserDecorator() user: CurrentUser,
-  ): Promise<TimeEntryDetail | null> {
-    return this.timeTrackingService.findActive(user.id);
+    @Res() res: import('express').Response,
+  ): Promise<void> {
+    const entry = await this.timeTrackingService.findActive(user.id);
+    // NestJS serialises `null` as an empty body by default.
+    // Use res.json() directly so clients always receive valid JSON
+    // (either a TimeEntryDetail object or the literal `null`).
+    res.json(entry);
   }
 
   // ─── List ─────────────────────────────────────────────────────────────────
