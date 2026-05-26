@@ -28,25 +28,35 @@ const withCleartextTraffic = (config) =>
     return c;
   });
 
-module.exports = ({ config }) =>
-  withCleartextTraffic({
-    ...config,
-    icon: assets('icon.png'),
-    splash: {
-      ...config.splash,
-      image: assets('splash.png'),
+const IS_PRODUCTION = process.env.APP_ENV === 'production';
+
+const baseConfig = (config) => ({
+  ...config,
+  icon: assets('icon.png'),
+  splash: {
+    ...config.splash,
+    image: assets('splash.png'),
+  },
+  android: {
+    ...config.android,
+    adaptiveIcon: {
+      foregroundImage: assets('adaptive-icon.png'),
+      backgroundColor: '#0a0a0a',
     },
-    android: {
-      ...config.android,
-      adaptiveIcon: {
-        foregroundImage: assets('adaptive-icon.png'),
-        backgroundColor: '#0a0a0a',
-      },
+  },
+  extra: {
+    ...config.extra,
+    apiUrl: process.env.API_URL ?? config.extra?.apiUrl ?? 'http://localhost:3001/api/v1',
+    wsUrl:  process.env.WS_URL  ?? config.extra?.wsUrl  ?? 'ws://localhost:3001',
+    eas: {
+      projectId: process.env.EXPO_PUBLIC_EAS_PROJECT_ID ?? '15510ddb-6e37-40ae-8310-7b3358724984',
     },
-    extra: {
-      ...config.extra,
-      eas: {
-        projectId: process.env.EXPO_PUBLIC_EAS_PROJECT_ID ?? '15510ddb-6e37-40ae-8310-7b3358724984',
-      },
-    },
-  });
+  },
+});
+
+module.exports = ({ config }) => {
+  const configured = baseConfig(config);
+  // Only enable cleartext traffic for non-production builds (dev/preview use HTTP)
+  if (IS_PRODUCTION) return configured;
+  return withCleartextTraffic(configured);
+};
