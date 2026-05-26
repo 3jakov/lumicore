@@ -1,0 +1,6 @@
+{
+  "buildCommand": "pnpm --filter @lumicore/shared-types build && pnpm --filter @lumicore/web build",
+  "outputDirectory": "apps/web/.next",
+  "installCommand": "pnpm install --frozen-lockfile",
+  "framework": "nextjs"
+}
