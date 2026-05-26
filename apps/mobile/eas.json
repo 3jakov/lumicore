@@ -18,6 +18,11 @@
     },
     "production": {
       "extends": "base",
+      "env": {
+        "APP_ENV": "production",
+        "API_URL": "https://lumicore-api.onrender.com/api/v1",
+        "WS_URL": "wss://lumicore-api.onrender.com"
+      },
       "android": {
         "buildType": "app-bundle"
       },
